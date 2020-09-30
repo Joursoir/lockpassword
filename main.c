@@ -14,10 +14,19 @@
 
 //#define DEBUG
 #define MAXLEN_PASSWORD 128
+#define STANDARD_AMOUNT_GENERATE_SYMBOLS 10
 #define FULLNAMEFILE "/.lock-password/Password-Bank"
 #define TREENAMEFILE "/.lock-password"
 #define ADDNAMETOFULL "/Password-Bank"
 #define NAMEFILE "Password-Bank"
+
+static void clearStdinBuff()
+{
+	char garbage;
+
+	while( (garbage = fgetc(stdin)) != '\n' && garbage != EOF )
+		;
+}
 
 static char* get_password(char *path, char *password)
 {
@@ -83,7 +92,7 @@ static void changePass(char *root_path, char *add_path, char *password)
 	}
 
 	FILE *filePass;
-	filePass = fopen(file_path, "r+");
+	filePass = fopen(file_path, "w");
 	if(filePass == NULL) {
 		if(errno == ENOENT) { // file doesn't exist
 			print_error("Error: No such file exists\n");
@@ -184,6 +193,67 @@ static void nonvisible_enter(int status)
 	tcsetattr(0, TCSANOW, &term_settings);
 }
 
+static int get_answer(char *text)
+{
+	char answer;
+	printf("%s\n", text);
+	while( (answer = fgetc(stdin)) )
+	{
+		clearStdinBuff();
+		switch(answer)
+		{
+			case 'Y':
+			case 'y':
+			{
+				return 1;
+			}
+			case 'N':
+			case 'n':
+			{
+				return 0;
+			}
+			case EOF:
+			{
+				print_error("Unexpected end of file\n");
+			}
+			default:
+			{
+				printf("%s\n", text);
+				break;
+			}
+		}
+	}
+
+	return -1;
+}
+
+static char *typePass(char *text, char *dest)
+{
+	printf("%s", text);
+	if(fgets(dest, (sizeof(char)*MAXLEN_PASSWORD + 1), stdin) == NULL) {
+		nonvisible_enter(0);
+		print_error("Unexpected end of file\n");
+	}
+
+	int len = strlen(dest);
+	if(len < 2) {
+		nonvisible_enter(0);
+		print_error("Error: uncorrect password\n");
+	}
+	
+	if(dest[len-1] == '\n') {
+		dest[len-1] = '\0';
+	}
+
+	#if defined(DEBUG)
+		printf("%s", dest);
+	#endif
+
+	printf("\n"); // for new line
+
+	return dest;
+}
+
 int main(int argc, char *argv[])
 {
 	if(!isatty(0)) { // stdin
@@ -243,42 +313,61 @@ int main(int argc, char *argv[])
 			break;
 		}
 		case 'e': {
-			nonvisible_enter(1); /* change terminal work */
-			
+			char *passPath = optarg;
+
+			if(checkFileExist(passPath) == 0) {
+				print_error("Error: No such file exists\n");
+			}
+
+			/* ask user about change pass */
+			int buffSize = (strlen("Do you want edit password in '' (Y/N)?") + strlen(passPath)) * sizeof(char) + 1;
+			char *str = malloc(buffSize);
+
+			snprintf(str, buffSize, "Do you want edit password in '%s' (Y/N)?", passPath);
+			if(get_answer(str) != 1) {
+				// free(str);
+				return 0;
+			}
+			free(str);
+
 			/* enter password */
+			nonvisible_enter(1); // change terminal work
 			char pass_one[MAXLEN_PASSWORD], pass_two[MAXLEN_PASSWORD];
-
-			printf("Please type your new password: ");
-			if(!fgets(pass_one, sizeof(pass_one), stdin)) {
-				nonvisible_enter(0);
-				print_error("Unexpected end of file\n");
-			}
-			printf("\n");
-
-			printf("Please type your new password again: ");
-			if(!fgets(pass_two, sizeof(pass_two), stdin)) {
-				nonvisible_enter(0);
-				print_error("Unexpected end of file\n");
-			}
-			printf("\n");
-
+			typePass("Please type your new password: ", pass_one);
+			typePass("Please type your new password again: ", pass_two);
 			nonvisible_enter(0);
 
 			if(strcmp(pass_one, pass_two) == 0) {
 				printf("Password correct\n");
 
-				changePass(rootPath, optarg, pass_one);
-				printf("Password updated successfully for %s\n", optarg);
+				changePass(rootPath, passPath, pass_one);
+				printf("Password updated successfully for %s\n", passPath);
 			}
 			else printf("Passwords do not match\n");
 
 			break;
 		}
 		case 'g': {
+			char *passPath = argv[argc-1];
+			char *lenPass = optarg;
+
+			if(checkFileExist(passPath) == 0) {
+				/* ask user about change pass */
+				int buffSize = (strlen("Do you want generate new password and paste it in '' (Y/N)?") + strlen(passPath)) * sizeof(char) + 1;
+				char *str = malloc(buffSize);
+
+				snprintf(str, buffSize, "Do you want generate new password and paste it in '%s' (Y/N)?", passPath);
+				if(get_answer(str) != 1) {
+					// free(str);
+					return 0;
+				}
+				free(str);
+			}
+
 			int n_symbols = 0;
-			if(strcmp(optarg, argv[argc-1]) == 0)
-				n_symbols = 8;
-			else n_symbols = atoi(optarg);
+			if(strcmp(lenPass, passPath) == 0)
+				n_symbols = STANDARD_AMOUNT_GENERATE_SYMBOLS;
+			else n_symbols = atoi(lenPass);
 
 
 			if(n_symbols < 1 || n_symbols > 127) {
@@ -289,32 +378,23 @@ int main(int argc, char *argv[])
 			char gpass[MAXLEN_PASSWORD];
 			generate_password(gpass, n_symbols);
 
-			insertPass(rootPath, argv[argc-1], gpass);
+			insertPass(rootPath, passPath, gpass);
 			printf("Generated password: %s\n", gpass);
-			printf("Password added successfully for %s\n", argv[argc-1]);
+			printf("Password added successfully for %s\n", passPath);
 
 			break;
 		}
 		case 'i': {
-			nonvisible_enter(1); /* change terminal work */
+			if(checkFileExist(optarg) == 1) {
+				printf("To change pass use lpass -e\n");
+				return 0;
+			}
 			
 			/* enter password */
+			nonvisible_enter(1); // change terminal work
 			char pass_one[MAXLEN_PASSWORD], pass_two[MAXLEN_PASSWORD];
-
-			printf("Please type your password: ");
-			if(!fgets(pass_one, sizeof(pass_one), stdin)) {
-				nonvisible_enter(0);
-				print_error("Unexpected end of file\n");
-			}
-			printf("\n");
-
-			printf("Please type your password again: ");
-			if(!fgets(pass_two, sizeof(pass_two), stdin)) {
-				nonvisible_enter(0);
-				print_error("Unexpected end of file\n");
-			}
-			printf("\n");
-
+			typePass("Please type your password: ", pass_one);
+			typePass("Please type your password again: ", pass_two);
 			nonvisible_enter(0);
 
 			if(strcmp(pass_one, pass_two) == 0) {
@@ -328,6 +408,10 @@ int main(int argc, char *argv[])
 			break;
 		}
 		case 'R': {
+			if(checkFileExist(optarg) == 0) {
+				print_error("Error: No such file exists\n");
+			}
+
 			char *main_path = malloc(sizeof(char) * strlen(optarg) + 1);
 			char *file_path = malloc(sizeof(char) * strlen(optarg) + 1);
 

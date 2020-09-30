@@ -111,3 +111,19 @@ int delete_emptydir(char *dir_path)
 
 	return 1;
 }
+
+int checkFileExist(char *path_to_file)
+{
+	FILE *pFile;
+
+	pFile = fopen(path_to_file, "r");
+	if(pFile == NULL) {
+		if(errno == ENOENT) { // file doesn't exist
+			return 0;
+		}
+		else call_error(120);
+	}
+	fclose(pFile);
+
+	return 1;
+}
