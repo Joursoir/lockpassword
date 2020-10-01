@@ -1,2 +1,2 @@
-void call_error(int num);
-void print_error(char *text);
+void callError(int num);
+void printError(char *text);

@@ -53,7 +53,7 @@ char* splitPath(char *source, char *path, char *file)
 			case '\\':
 			case '/':
 			{
-				print_error("[Error] You can't use these symbol at the beginning: '.', '/', '\\' \n");
+				printError("lpass: You can't use these symbol at the beginning: '.', '/', '\\' \n");
 				break;
 			}
 			default:
@@ -78,11 +78,11 @@ char* splitPath(char *source, char *path, char *file)
 	return NULL;
 }
 
-int delete_file(char *file_path)
+int deleteFile(char *file_path)
 {
 	int pid;
 	pid = fork();
-	if(pid == -1) call_error(112);
+	if(pid == -1) callError(112);
 	if(pid == 0) { /* new process */
 		execlp("rm", "rm", file_path, NULL);
 		perror("rm");
@@ -93,11 +93,11 @@ int delete_file(char *file_path)
 	return 1;
 }
 
-int delete_emptydir(char *dir_path)
+int deleteEmptyDir(char *dir_path)
 {
 	int pid;
 	pid = fork();
-	if(pid == -1) call_error(113);
+	if(pid == -1) callError(113);
 	if(pid == 0) { /* new process */
 		#if defined(DEBUG)
 			execlp("rmdir", "rmdir", "-p", dir_path, NULL);
@@ -121,7 +121,7 @@ int checkFileExist(char *path_to_file)
 		if(errno == ENOENT) { // file doesn't exist
 			return 0;
 		}
-		else call_error(120);
+		else callError(120);
 	}
 	fclose(pFile);
 
