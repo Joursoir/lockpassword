@@ -33,6 +33,9 @@ static char* getPassword(char *path, char *password)
 	FILE *filePass;
 	filePass = fopen(path, "r");
 	if(filePass == NULL) {
+		if(errno == ENOENT) { // file doesn't exist
+			printError("lpass: No such file exists\n");
+		}
 		callError(110);
 	}
 
@@ -66,7 +69,7 @@ static void showTree(char *path)
 	}
 }
 
-static void changePass(char *root_path, char *add_path, char *password)
+static void insertPass(char *root_path, char *add_path, char *password)
 {
 	/* root_path = /home/[username]/
 	add_path = banks/france/[number]
@@ -81,71 +84,34 @@ static void changePass(char *root_path, char *add_path, char *password)
 	}
 
 	int pass_buf = strlen(root_path) + strlen(add_path);
-	char *final_path = (char*) malloc(sizeof(char) * pass_buf + 1);
+	char *final_path = (char*) malloc(sizeof(char) * pass_buf + sizeof(char));
 
 	strcpy(final_path, root_path);
 	strcat(final_path, "/");
 	strcat(final_path, main_path);
 
-	if(chdir(final_path) != 0) {
-		callError(107);
-	}
-
-	FILE *filePass;
-	filePass = fopen(file_path, "w");
-	if(filePass == NULL) {
-		if(errno == ENOENT) { // file doesn't exist
-			printError("lpass: No such file exists\n");
+	if(strcmp(main_path, "") != 0) {
+		int pid = fork();
+		if(pid == -1) callError(103);
+		if(pid == 0) { /* new process */
+			execlp("mkdir", "mkdir", "-p", main_path, NULL);
+			perror("mkdir");
+			exit(4);
 		}
-		callError(114);
+		wait(&pid);
 	}
-	fputs(password, filePass);
-
-	free(main_path);
-	free(file_path);
-	fclose(filePass);
-}
-
-static void insertPass(char *root_path, char *add_path, char *password)
-{
-	/* root_path = /home/[username]/
-	add_path = banks/france/[number]
-	main_path = banks/france
-	file_path = [number] */
-
-	char *main_path = malloc(sizeof(char) * strlen(add_path) + 1);
-	char *file_path = malloc(sizeof(char) * strlen(add_path) + 1);
-
-	if(splitPath(add_path, main_path, file_path) == NULL) {
-		printError("lpass: The path you specified is incorrect\n");
-	}
-
-	int pass_buf = strlen(root_path) + strlen(add_path);
-	char *final_path = (char*) malloc(sizeof(char) * pass_buf + 1);
-
-	strcpy(final_path, root_path);
-	strcat(final_path, "/");
-	strcat(final_path, main_path);
-
-	int pid = fork();
-	if(pid == -1) callError(103);
-	if(pid == 0) { /* new process */
-		execlp("mkdir", "mkdir", "-p", main_path, NULL);
-		perror("mkdir");
-		exit(4);
-	}
-	wait(&pid);
-
+	
 	if(chdir(final_path) != 0) {
 		callError(107);
 	}
 
 	// create file, copy password there
 	FILE *filePass;
-	filePass = fopen(file_path, "w");
+	filePass = fopen(file_path, "w");	
 	if(filePass == NULL) {
 		callError(108);
 	}
+
 	fputs(password, filePass);
 
 	free(main_path);
@@ -230,7 +196,7 @@ static int getAnswer(char *text)
 static char *typePass(char *text, char *dest)
 {
 	printf("%s", text);
-	if(fgets(dest, (sizeof(char)*MAXLEN_PASSWORD + 1), stdin) == NULL) {
+	if(fgets(dest, (sizeof(char)*MAXLEN_PASSWORD + sizeof(char)), stdin) == NULL) {
 		nonvisibleEnter(0);
 		printError("lpass: Unexpected end of file\n");
 	}
@@ -272,7 +238,7 @@ int main(int argc, char *argv[])
 	};
 
 	int rootBuf = strlen(getenv("HOME")) + strlen(FULLNAMEFILE);
-	char *rootPath = (char *) malloc(sizeof(char) * rootBuf + 1); // +1 for '\0'
+	char *rootPath = (char *) malloc(sizeof(char) * rootBuf + sizeof(char)); // +1 for '\0'
 
 	int path_init = 0;
 	strcpy(rootPath, getenv("HOME"));
@@ -340,7 +306,7 @@ int main(int argc, char *argv[])
 			if(strcmp(pass_one, pass_two) == 0) {
 				printf("Password correct\n");
 
-				changePass(rootPath, passPath, pass_one);
+				insertPass(rootPath, passPath, pass_one);
 				printf("Password updated successfully for %s\n", passPath);
 			}
 			else printf("Passwords do not match\n");
@@ -353,7 +319,7 @@ int main(int argc, char *argv[])
 
 			if(checkFileExist(passPath) == 1) {
 				/* ask user about change pass */
-				int buffSize = (strlen("Do you want generate new password and paste it in '' (Y/N)?") + strlen(passPath)) * sizeof(char) + 1;
+				int buffSize = (strlen("Do you want generate new password and paste it in '' (Y/N)?") + strlen(passPath)) * sizeof(char) + sizeof(char);
 				char *str = malloc(buffSize);
 
 				snprintf(str, buffSize, "Do you want generate new password and paste it in '%s' (Y/N)?", passPath);
@@ -412,8 +378,8 @@ int main(int argc, char *argv[])
 				printError("lpass: No such file exists\n");
 			}
 
-			char *main_path = malloc(sizeof(char) * strlen(optarg) + 1);
-			char *file_path = malloc(sizeof(char) * strlen(optarg) + 1);
+			char *main_path = malloc(sizeof(char) * strlen(optarg) + sizeof(char));
+			char *file_path = malloc(sizeof(char) * strlen(optarg) + sizeof(char));
 
 			if(splitPath(optarg, main_path, file_path) == NULL) { // check correct input
 				printError("lpass: The path you specified is incorrect\n");

@@ -1,4 +1,0 @@
-#!/bin/bash
-
-gcc -c -Wall -g *.c
-gcc -Wall -g -o lpass *.o
