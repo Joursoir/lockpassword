@@ -20,6 +20,25 @@
 #define ADDNAMETOFULL "/Password-Bank"
 #define NAMEFILE "Password-Bank"
 
+
+#define LOCKPASS_DIR "/.lock-password/"
+#define GPGKEY_FILE "/.gpg-key"
+
+#define HASH_INIT 6385337657
+#define HASH_HELP 6385292014
+#define HASH_VERSION 229486327000139
+#define HASH_COPY 6385123360
+#define HASH_EDIT 6385183019
+#define HASH_MOVE 249844339311324255
+#define HASH_GENERATE 7572409341523952
+#define HASH_INSERT 6953633055386
+#define HASH_REMOVE 6953974396019
+#define HASH_DELETE 6953426453624
+#define HASH_CHANGE 6953390490059
+
+// == global var == 
+char *gPath_rootdir; // init ONLY in main
+
 static void clearStdinBuff()
 {
 	char garbage;
@@ -220,11 +239,144 @@ static char *typePass(char *text, char *dest)
 	return dest;
 }
 
+static void cmd_init(int argc, char *argv[])
+{
+	// argv[2] = name of storage
+	// argv[3] = gpg key
+
+	if(argv[2] == NULL)
+		printError("Use: lpass init [storage name] [gpg key]\n");
+	else if(strcmp(argv[2], argv[3]) == 0 || argv[3] == NULL)
+		printError("Use: lpass init [storage name] [gpg key]\n");
+
+	char *main_path, *file_path;
+	main_path = (char *) malloc( sizeof(char) * (strlen(argv[2])+1) );
+	file_path = (char *) malloc( sizeof(char) * (strlen(argv[2])+1) );
+
+	if(splitPath(argv[2], main_path, file_path) == NULL) { // check correct input
+		printError("lpass: The path you specified is incorrect\n");
+	}
+
+
+	// create main directory:
+	int len_passwordstore = strlen(gPath_rootdir) + strlen(file_path) + strlen(GPGKEY_FILE) + 1; // +1 for '\0'
+	char *path_passwordstore = (char *) malloc(sizeof(char) * len_passwordstore);
+
+	strcpy(path_passwordstore, gPath_rootdir);
+	strcat(path_passwordstore, file_path);
+
+	int pid = fork();
+	if(pid == -1) callError(100);
+	if(pid == 0) { /* new process */
+		execlp("mkdir", "mkdir", "-vp", path_passwordstore, NULL);
+		perror("mkdir");
+		exit(4);
+	}
+	wait(&pid);
+
+	// check .main-store
+	FILE *filestore;
+	filestore = fopen(path_passwordstore, "r");
+	if(filestore == NULL) {
+		// create .main-store
+		filestore = fopen(path_passwordstore, "w");
+		if(filestore == NULL) {
+			callError(121);
+		}
+		fputs(file_path, filestore);
+	}
+	fclose(filestore);
+
+	// create .gpg-key in store
+	strcat(path_passwordstore, GPGKEY_FILE);
+	FILE *filekey;
+	filekey = fopen(path_passwordstore, "w");	
+	if(filekey == NULL) {
+		callError(122);
+	}
+	fputs(argv[3], filekey);
+	fclose(filekey);
+
+	free(path_passwordstore);
+	free(main_path);
+	free(file_path);
+	printf("LockPassword initialized successfully\n");
+}
+
+static void cmd_change(int argc, char *argv[])
+{
+	// argv[2] = desired password storage
+	if(argv[2] == NULL)
+		printError("Use: lpass change [storage name]\n");
+}
+
+static unsigned long hash(char *str)
+{
+    unsigned long hash = 5381;
+    char c;
+
+    while( (c = *str++) )
+        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+
+    return hash;
+}
+
 int main(int argc, char *argv[])
 {
 	if(!isatty(0)) { // stdin
 		printError("lpass: Please, use a terminal to run this program\n");
 	}
+
+	int len_rootdir = strlen(getenv("HOME")) + strlen(LOCKPASS_DIR) + 1; // +1 for '\0'
+	gPath_rootdir = (char *) malloc(sizeof(char) * len_rootdir);
+
+	strcpy(gPath_rootdir, getenv("HOME"));
+	strcat(gPath_rootdir, LOCKPASS_DIR);
+
+	//int path_init = 0;
+	//if(chdir(gPath_rootdir) == 0) path_init = 1;
+
+	if(argv[1] == NULL) {
+		printf("show tree\n");
+	}
+	else
+	{
+		switch( hash(argv[1]) )
+		{
+		case HASH_INIT:
+			cmd_init(argc, argv);
+			break;
+		case HASH_HELP:
+			break;
+		case HASH_VERSION:
+			break;
+		case HASH_COPY:
+			break;
+		case HASH_CHANGE:
+			cmd_change(argc, argv);
+			break;
+		case HASH_EDIT:
+			break;
+		case HASH_MOVE:
+			break;
+		case HASH_GENERATE:
+			break;
+		case HASH_INSERT:
+			break;
+		case HASH_REMOVE:
+		case HASH_DELETE:
+			printf("borrr\n");
+			break;
+		default:
+			printf("please, use help\n");
+			break;
+		}
+	}
+
+	free(gPath_rootdir);
+	return 0;
+
+
 
 	#if defined(DEBUG)
 		char* short_options = "c:e:g:i:R:t";
@@ -233,7 +385,7 @@ int main(int argc, char *argv[])
 	#endif
 
 	struct option long_options[] = {
-		{"init", no_argument, NULL, 'I'},
+		{"init", required_argument, NULL, 'I'},
 		{NULL, 0, NULL, 0}
 	};
 
@@ -378,8 +530,10 @@ int main(int argc, char *argv[])
 				printError("lpass: No such file exists\n");
 			}
 
-			char *main_path = malloc(sizeof(char) * strlen(optarg) + sizeof(char));
-			char *file_path = malloc(sizeof(char) * strlen(optarg) + sizeof(char));
+			// check working
+			char *main_path, *file_path;
+			main_path = (char *) malloc( sizeof(char) * (strlen(optarg)+1) );
+			file_path = (char *) malloc( sizeof(char) * (strlen(optarg)+1) );
 
 			if(splitPath(optarg, main_path, file_path) == NULL) { // check correct input
 				printError("lpass: The path you specified is incorrect\n");

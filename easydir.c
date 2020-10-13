@@ -14,9 +14,9 @@ char* splitPath(char *source, char *path, char *file)
 {
 	int fSymbol = 0, f = 0;
 
-	char *main_path = malloc(sizeof(char) * strlen(source) + 1);
-	char *file_path = malloc(sizeof(char) * strlen(source) + 1);
-
+	char *main_path = malloc( sizeof(char) * (strlen(source)+1) );
+	char *file_path = malloc( sizeof(char) * (strlen(source)+1) );
+ 
 	for(int i=0; i < strlen(source); i++)
 	{
 		if(fSymbol == 1)
