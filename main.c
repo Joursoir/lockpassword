@@ -1,27 +1,21 @@
 #include <stdio.h>
-#include <termios.h>
-#include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 #include <sys/wait.h>
 #include <getopt.h>
-#include <errno.h>
 #include <dirent.h>
-#include <time.h>
 
 #include "easydir.h"
 #include "handerror.h"
+#include "implementation.h"
 
 //#define DEBUG
+#define MINLEN_PASSWORD 1
 #define MAXLEN_PASSWORD 128
 #define STANDARD_AMOUNT_GENERATE_SYMBOLS 10
-#define FULLNAMEFILE "/.lock-password/Password-Bank"
-#define TREENAMEFILE "/.lock-password"
-#define ADDNAMETOFULL "/Password-Bank"
-#define NAMEFILE "Password-Bank"
-
-
 #define LOCKPASS_DIR "/.lock-password/"
+#define STORAGEPASS_DIR "Password-Storage/"
 #define GPGKEY_FILE "/.gpg-key"
 
 #define HASH_INIT 6385337657
@@ -34,41 +28,135 @@
 #define HASH_INSERT 6953633055386
 #define HASH_REMOVE 6953974396019
 #define HASH_DELETE 6953426453624
-#define HASH_CHANGE 6953390490059
+#define WITHOUT_ARGUMENTS 1
 
 // == global var == 
-char *gPath_rootdir; // init ONLY in main
+char *gPath_rootdir;
 
-static void clearStdinBuff()
+static void cmd_init(int argc, char *argv[])
 {
-	char garbage;
+	char *gpg_key = argv[2];
 
-	while( (garbage = fgetc(stdin)) != '\n' && garbage != EOF )
-		;
+	if(gpg_key == NULL)
+		printError("Use: lpass init [gpg key]\n");
+
+	// create main directory:
+	int len_init_storage = strlen(gPath_rootdir) + strlen(GPGKEY_FILE) + 1; // +1 for '\0'
+	char *path_init_storage = (char *) malloc(sizeof(char) * len_init_storage);
+
+	strcpy(path_init_storage, gPath_rootdir);
+	
+	int pid = fork();
+	if(pid == -1) callError(100);
+	if(pid == 0) { /* new process */
+		execlp("mkdir", "mkdir", "-vp", path_init_storage, NULL);
+		perror("mkdir");
+		exit(4);
+	}
+	wait(&pid);
+
+	strcat(path_init_storage, GPGKEY_FILE);
+
+	// create .gpg-key in storage
+	FILE *filekey;
+	filekey = fopen(path_init_storage, "w");	
+	if(filekey == NULL) {
+		callError(122);
+	}
+	fputs(gpg_key, filekey);
+	fclose(filekey);
+
+	free(path_init_storage);
+	printf("LockPassword initialized successfully\n");
 }
 
-static char* getPassword(char *path, char *password)
+static void cmd_copy(int argc, char *argv[])
 {
-	FILE *filePass;
-	filePass = fopen(path, "r");
-	if(filePass == NULL) {
-		if(errno == ENOENT) { // file doesn't exist
-			printError("lpass: No such file exists\n");
-		}
-		callError(110);
-	}
-
-	char sign[MAXLEN_PASSWORD];
-	if(!fgets(sign, sizeof(sign), filePass)) {
-		callError(111);
-	}
-
-	strcpy(password, sign);
-	fclose(filePass);
-	return password;
+	printf("Coming soon...\n");
 }
 
-static void showTree(char *path)
+static void cmd_edit(int argc, char *argv[])
+{
+	char *path_to_password = argv[2];
+
+	if(path_to_password == NULL)
+		printError("Use: lpass edit [path to password]\n");
+
+	if(checkFileExist(path_to_password) == 0) {
+		printError("lpass: No such file exists\n");
+	}
+
+	/* ask user about change pass */
+	int buffSize = (strlen("Do you want edit password in '' (Y/N)?") + strlen(path_to_password)) * sizeof(char) + sizeof(char);
+	char *str = malloc(buffSize);
+	snprintf(str, buffSize, "Do you want edit password in '%s' (Y/N)?", path_to_password);
+
+	if(getAnswer(str) != 1) {
+		free(str);
+		exit(EXIT_SUCCESS);
+	}
+	free(str);
+
+	if(userEnterPassword(MINLEN_PASSWORD, MAXLEN_PASSWORD, path_to_password) == 1)
+		printf("Password updated successfully for %s\n", path_to_password);
+	else
+		printf("Passwords do not match\n");
+}
+
+static void cmd_generate(int argc, char *argv[])
+{
+	char *len_pass = argv[2];
+	char *path_to_password = argv[argc-1];
+
+	if(checkFileExist(path_to_password) == 1) {
+		// ask user about change pass 
+		int buffSize = (strlen("Do you want generate new password and paste it in '' (Y/N)?") + strlen(path_to_password)) * sizeof(char) + sizeof(char);
+		char *str = malloc(buffSize);
+
+		snprintf(str, buffSize, "Do you want generate new password and paste it in '%s' (Y/N)?", path_to_password);
+		
+		int answer = getAnswer(str);
+		free(str);
+
+		if(answer != 1)
+			exit(EXIT_FAILURE);
+	}
+
+	int n_symbols = 0;
+	if(strcmp(len_pass, path_to_password) == 0)
+		n_symbols = STANDARD_AMOUNT_GENERATE_SYMBOLS;
+	else n_symbols = atoi(len_pass);
+
+
+	if(n_symbols < MINLEN_PASSWORD || n_symbols > MAXLEN_PASSWORD) {
+		printError("lpass: you typed an incorrect number");
+	}
+
+	// generate password 
+	char gpass[MAXLEN_PASSWORD];
+	generatePassword(gpass, n_symbols, MAXLEN_PASSWORD);
+
+	insertPass(path_to_password, gpass);
+	printf("Generated password: %s\n", gpass);
+	printf("Password added successfully for %s\n", path_to_password);
+}
+
+static void cmd_insert(int argc, char *argv[])
+{
+	char *path_to_password = argv[2];
+	if(path_to_password == NULL)
+		printError("Use: lpass insert [path to password]\n");
+
+	if(checkFileExist(path_to_password) == 1)
+		printError("To change pass use: lpass change [path to password]\n");
+			
+	if(userEnterPassword(MINLEN_PASSWORD, MAXLEN_PASSWORD, path_to_password) == 1)
+		printf("Password added successfully for %s\n", path_to_password);
+	else
+		printf("Passwords do not match\n");
+}
+
+static void cmd_showtree(char *path)
 {
 	if(opendir(path) != NULL) { // if it's directory
 		int pid;
@@ -83,242 +171,19 @@ static void showTree(char *path)
 	}
 	else {
 		char password[MAXLEN_PASSWORD];
-		getPassword(path, password);
+		getPassword(path, password, MAXLEN_PASSWORD);
 		printf("%s\n", password);
 	}
 }
 
-static void insertPass(char *root_path, char *add_path, char *password)
+static void cmd_help()
 {
-	/* root_path = /home/[username]/
-	add_path = banks/france/[number]
-	main_path = banks/france
-	file_path = [number] */
 
-	char *main_path = malloc(sizeof(char) * strlen(add_path) + sizeof(char));
-	char *file_path = malloc(sizeof(char) * strlen(add_path) + sizeof(char));
-
-	if(splitPath(add_path, main_path, file_path) == NULL) {
-		printError("lpass: The path you specified is incorrect\n");
-	}
-
-	int pass_buf = strlen(root_path) + strlen(add_path);
-	char *final_path = (char*) malloc(sizeof(char) * pass_buf + sizeof(char));
-
-	strcpy(final_path, root_path);
-	strcat(final_path, "/");
-	strcat(final_path, main_path);
-
-	if(strcmp(main_path, "") != 0) {
-		int pid = fork();
-		if(pid == -1) callError(103);
-		if(pid == 0) { /* new process */
-			execlp("mkdir", "mkdir", "-p", main_path, NULL);
-			perror("mkdir");
-			exit(4);
-		}
-		wait(&pid);
-	}
-	
-	if(chdir(final_path) != 0) {
-		callError(107);
-	}
-
-	// create file, copy password there
-	FILE *filePass;
-	filePass = fopen(file_path, "w");	
-	if(filePass == NULL) {
-		callError(108);
-	}
-
-	fputs(password, filePass);
-
-	free(main_path);
-	free(file_path);
-	fclose(filePass);
 }
 
-static char *generatePassword(char *dest, int amount)
+static void cmd_version()
 {
-	char allowed_symbols[] = {
-		'A','E','I','J','O','U','B','C','D','F','G','H',
-		'K','L','M','N','P','Q','R','S','T','V','W','X',
-		'Y','Z','a','e','i','j','o','u','b','c','d','f',
-		'g','h','k','l','m','n','p','q','r','s','t','v',
-		'w','x','y','z','1','2','3','4','5','6','7','8',
-		'9','0','!','#','$',';','%','^',':','&','?','*',
-		'(',')','-','_','+','=','<', '>'
-	};
-	int max = sizeof(allowed_symbols);
-	srand(time(NULL));
 
-	char password[MAXLEN_PASSWORD];
-	for(int i=0; i < amount; i++)
-	{
-		char c = allowed_symbols[rand() % max];
-
-		password[i] = c;
-		password[i+1] = '\0';
-	}
-
-	strcpy(dest, password);
-	return dest;
-}
-
-static void nonvisibleEnter(int status)
-{
-	struct termios term_settings;
-	tcgetattr(0, &term_settings); // get current settings
-	if(status == 1) {
-		term_settings.c_lflag &= ~ECHO; // flag reset
-	}
-	else {
-		term_settings.c_lflag |= ECHO;
-	}
-	tcsetattr(0, TCSANOW, &term_settings);
-}
-
-static int getAnswer(char *text)
-{
-	char answer;
-	printf("%s\n", text);
-	while( (answer = fgetc(stdin)) )
-	{
-		clearStdinBuff();
-		switch(answer)
-		{
-			case 'Y':
-			case 'y':
-			{
-				return 1;
-			}
-			case 'N':
-			case 'n':
-			{
-				return 0;
-			}
-			case EOF:
-			{
-				printError("lpass: Unexpected end of file\n");
-			}
-			default:
-			{
-				printf("%s\n", text);
-				break;
-			}
-		}
-	}
-
-	return -1;
-}
-
-static char *typePass(char *text, char *dest)
-{
-	printf("%s", text);
-	if(fgets(dest, (sizeof(char)*MAXLEN_PASSWORD + sizeof(char)), stdin) == NULL) {
-		nonvisibleEnter(0);
-		printError("lpass: Unexpected end of file\n");
-	}
-
-	int len = strlen(dest);
-	if(len < 2) {
-		nonvisibleEnter(0);
-		printError("lpass: incorrect password\n");
-	}
-	
-	if(dest[len-1] == '\n') {
-		dest[len-1] = '\0';
-	}
-
-	#if defined(DEBUG)
-		printf("%s", dest);
-	#endif
-
-	printf("\n"); // for new line
-
-	return dest;
-}
-
-static void cmd_init(int argc, char *argv[])
-{
-	// argv[2] = name of storage
-	// argv[3] = gpg key
-
-	if(argv[2] == NULL)
-		printError("Use: lpass init [storage name] [gpg key]\n");
-	else if(strcmp(argv[2], argv[3]) == 0 || argv[3] == NULL)
-		printError("Use: lpass init [storage name] [gpg key]\n");
-
-	char *main_path, *file_path;
-	main_path = (char *) malloc( sizeof(char) * (strlen(argv[2])+1) );
-	file_path = (char *) malloc( sizeof(char) * (strlen(argv[2])+1) );
-
-	if(splitPath(argv[2], main_path, file_path) == NULL) { // check correct input
-		printError("lpass: The path you specified is incorrect\n");
-	}
-
-
-	// create main directory:
-	int len_passwordstore = strlen(gPath_rootdir) + strlen(file_path) + strlen(GPGKEY_FILE) + 1; // +1 for '\0'
-	char *path_passwordstore = (char *) malloc(sizeof(char) * len_passwordstore);
-
-	strcpy(path_passwordstore, gPath_rootdir);
-	strcat(path_passwordstore, file_path);
-
-	int pid = fork();
-	if(pid == -1) callError(100);
-	if(pid == 0) { /* new process */
-		execlp("mkdir", "mkdir", "-vp", path_passwordstore, NULL);
-		perror("mkdir");
-		exit(4);
-	}
-	wait(&pid);
-
-	// check .main-store
-	FILE *filestore;
-	filestore = fopen(path_passwordstore, "r");
-	if(filestore == NULL) {
-		// create .main-store
-		filestore = fopen(path_passwordstore, "w");
-		if(filestore == NULL) {
-			callError(121);
-		}
-		fputs(file_path, filestore);
-	}
-	fclose(filestore);
-
-	// create .gpg-key in store
-	strcat(path_passwordstore, GPGKEY_FILE);
-	FILE *filekey;
-	filekey = fopen(path_passwordstore, "w");	
-	if(filekey == NULL) {
-		callError(122);
-	}
-	fputs(argv[3], filekey);
-	fclose(filekey);
-
-	free(path_passwordstore);
-	free(main_path);
-	free(file_path);
-	printf("LockPassword initialized successfully\n");
-}
-
-static void cmd_change(int argc, char *argv[])
-{
-	// argv[2] = desired password storage
-	if(argv[2] == NULL)
-		printError("Use: lpass change [storage name]\n");
-}
-
-static unsigned long hash(char *str)
-{
-    unsigned long hash = 5381;
-    char c;
-
-    while( (c = *str++) )
-        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
-
-    return hash;
 }
 
 int main(int argc, char *argv[])
@@ -327,150 +192,100 @@ int main(int argc, char *argv[])
 		printError("lpass: Please, use a terminal to run this program\n");
 	}
 
-	int len_rootdir = strlen(getenv("HOME")) + strlen(LOCKPASS_DIR) + 1; // +1 for '\0'
-	gPath_rootdir = (char *) malloc(sizeof(char) * len_rootdir);
+	/* init global path to root directory */
+	int len_rootdir = strlen(getenv("HOME")) + strlen(LOCKPASS_DIR) + strlen(STORAGEPASS_DIR) + 1; // +1 for '\0'
 
+	gPath_rootdir = (char *) malloc(sizeof(char) * len_rootdir);
 	strcpy(gPath_rootdir, getenv("HOME"));
 	strcat(gPath_rootdir, LOCKPASS_DIR);
+	strcat(gPath_rootdir, STORAGEPASS_DIR);
+	/* end init */
 
-	//int path_init = 0;
-	//if(chdir(gPath_rootdir) == 0) path_init = 1;
+	unsigned long ihash = WITHOUT_ARGUMENTS;
+	if(argv[1] != NULL)
+		ihash = hash(argv[1]);
 
-	if(argv[1] == NULL) {
-		printf("show tree\n");
+	if( (chdir(gPath_rootdir) != 0) && (ihash != HASH_INIT) ) {
+		printError("Before starting work, you must initialize LockPassword\nUse: lpass init [gpg key]\n");
 	}
-	else
+
+	switch(ihash)
 	{
-		switch( hash(argv[1]) )
-		{
-		case HASH_INIT:
+		case HASH_INIT: {
 			cmd_init(argc, argv);
 			break;
-		case HASH_HELP:
+		}
+		case HASH_COPY: {
+			cmd_copy(argc, argv);
 			break;
-		case HASH_VERSION:
+		}
+		case HASH_EDIT: {
+			cmd_edit(argc, argv);
 			break;
-		case HASH_COPY:
-			break;
-		case HASH_CHANGE:
-			cmd_change(argc, argv);
-			break;
-		case HASH_EDIT:
-			break;
+		}
 		case HASH_MOVE:
 			break;
-		case HASH_GENERATE:
+		case HASH_GENERATE: {
+			cmd_generate(argc, argv);
 			break;
-		case HASH_INSERT:
+		}
+		case HASH_INSERT: {
+			cmd_insert(argc, argv);
 			break;
+		}
 		case HASH_REMOVE:
-		case HASH_DELETE:
+		case HASH_DELETE: {
 			printf("borrr\n");
 			break;
+		}
+		case HASH_HELP: {
+			cmd_help();
+			break;
+		}
+		case HASH_VERSION: {
+			cmd_version();
+			break;
+		}
 		default:
-			printf("please, use help\n");
+		{
+			int newlen_rootdir = len_rootdir - strlen(STORAGEPASS_DIR) - 1;
+			gPath_rootdir[newlen_rootdir-1] = '\0';
+
+			if(chdir(gPath_rootdir) != 0)
+				callError(123);
+
+			char *ptr;
+			if(ihash == WITHOUT_ARGUMENTS) {
+				ptr = malloc(sizeof(char) * (strlen(STORAGEPASS_DIR)+1) );
+				strcpy(ptr, STORAGEPASS_DIR);
+			}
+			else {
+				int buff_tree = strlen(STORAGEPASS_DIR) + strlen(argv[argc-1]) + 1;
+				ptr = malloc(sizeof(char) * buff_tree);
+				strcpy(ptr, STORAGEPASS_DIR);
+				strcat(ptr, argv[argc-1]);
+			}
+			cmd_showtree(ptr);
+
+			free(ptr);
 			break;
 		}
 	}
 
 	free(gPath_rootdir);
-	return 0;
+	return EXIT_SUCCESS;
 
-
-
-	#if defined(DEBUG)
-		char* short_options = "c:e:g:i:R:t";
-	#else
-		char* short_options = "c:e:g:i:R:";
-	#endif
-
-	struct option long_options[] = {
-		{"init", required_argument, NULL, 'I'},
-		{NULL, 0, NULL, 0}
-	};
-
-	int rootBuf = strlen(getenv("HOME")) + strlen(FULLNAMEFILE);
-	char *rootPath = (char *) malloc(sizeof(char) * rootBuf + sizeof(char)); // +1 for '\0'
-
-	int path_init = 0;
-	strcpy(rootPath, getenv("HOME"));
-	strcat(rootPath, TREENAMEFILE);
-
-	if(chdir(rootPath) == 0) path_init = 1;
-
-	int option_index = -1, result = -1;
-	result = getopt_long(argc, argv, short_options, long_options, &option_index);
-	if(!path_init) {
-		if(result != 'I') // if doesn't init
-		{ 
-			if(errno == ENOENT) { // file doesn't exist
-				printError("lpass: Before starting work, you must initialize LockPassword\n\
-					Use: lpass --init\n");
-			}
-			callError(102);
-		}
-	}
-	else {
-		if(result == 'I') {
-			printError("lpass: You already initialized LockPassword\n");
-		}
-		else if(result != -1)
-		{
-			strcat(rootPath, ADDNAMETOFULL); // complements to full path
-			if(chdir(rootPath) != 0) {
-				callError(112);
-			}
-		}
-	}
-
+	/*char rootPath = "";
+	int result = 0;
 	if(result != -1)
 	{
 		switch(result) {
-		case 'c': {
-			printf("Coming soon...\n");
-			break;
-		}
-		case 'e': {
-			char *passPath = optarg;
-
-			if(checkFileExist(passPath) == 0) {
-				printError("lpass: No such file exists\n");
-			}
-
-			/* ask user about change pass */
-			int buffSize = (strlen("Do you want edit password in '' (Y/N)?") + strlen(passPath)) * sizeof(char) + sizeof(char);
-			char *str = malloc(buffSize);
-			snprintf(str, buffSize, "Do you want edit password in '%s' (Y/N)?", passPath);
-
-			if(getAnswer(str) != 1) {
-				free(str);
-				return 0;
-			}
-			free(str);
-
-			/* enter password */
-			nonvisibleEnter(1); // change terminal work
-			char pass_one[MAXLEN_PASSWORD], pass_two[MAXLEN_PASSWORD];
-			typePass("Please type your new password: ", pass_one);
-			typePass("Please type your new password again: ", pass_two);
-			nonvisibleEnter(0);
-
-			if(strcmp(pass_one, pass_two) == 0) {
-				printf("Password correct\n");
-
-				insertPass(rootPath, passPath, pass_one);
-				printf("Password updated successfully for %s\n", passPath);
-			}
-			else printf("Passwords do not match\n");
-
-			break;
-		}
 		case 'g': {
 			char *passPath = argv[argc-1];
 			char *lenPass = optarg;
 
 			if(checkFileExist(passPath) == 1) {
-				/* ask user about change pass */
+				// ask user about change pass 
 				int buffSize = (strlen("Do you want generate new password and paste it in '' (Y/N)?") + strlen(passPath)) * sizeof(char) + sizeof(char);
 				char *str = malloc(buffSize);
 
@@ -492,36 +307,13 @@ int main(int argc, char *argv[])
 				printError("lpass: you typed an incorrect number");
 			}
 
-			/* generate password */
+			// generate password 
 			char gpass[MAXLEN_PASSWORD];
-			generatePassword(gpass, n_symbols);
+			generatePassword(gpass, n_symbols, MAXLEN_PASSWORD);
 
 			insertPass(rootPath, passPath, gpass);
 			printf("Generated password: %s\n", gpass);
 			printf("Password added successfully for %s\n", passPath);
-
-			break;
-		}
-		case 'i': {
-			if(checkFileExist(optarg) == 1) {
-				printf("lpass: To change pass use argument '-e'\n");
-				return 0;
-			}
-			
-			/* enter password */
-			nonvisibleEnter(1); // change terminal work
-			char pass_one[MAXLEN_PASSWORD], pass_two[MAXLEN_PASSWORD];
-			typePass("Please type your password: ", pass_one);
-			typePass("Please type your password again: ", pass_two);
-			nonvisibleEnter(0);
-
-			if(strcmp(pass_one, pass_two) == 0) {
-				printf("Password correct\n");
-
-				insertPass(rootPath, optarg, pass_one);
-				printf("Password added successfully for %s\n", optarg);
-			}
-			else printf("lpass: Passwords do not match\n");
 
 			break;
 		}
@@ -547,50 +339,5 @@ int main(int argc, char *argv[])
 			free(file_path);
 			break;
 		}
-		case 'I': {
-			// create direction:
-			int pid = fork();
-			if(pid == -1) callError(100);
-			if(pid == 0) { /* new process */
-				execlp("mkdir", "mkdir", "-vp", rootPath, NULL);
-				perror("mkdir");
-				exit(4);
-			}
-			wait(&pid);
-			printf("LockPassword initialized successfully\n");
-			break;
-		}
-
-		#if defined(DEBUG)
-		case 't':
-		{
-			// for check new features:
-			break;
-		}
-		#endif
-
-		default: break;
-
-		}
-	}
-	else
-	{
-		char *ptr;
-		if(strcmp(argv[argc-1], argv[0]) == 0) {
-			ptr = malloc(sizeof(char) * strlen(NAMEFILE) + sizeof(char));
-			strcpy(ptr, NAMEFILE);
-		}
-		else {
-			int buff_tree = strlen(NAMEFILE) + strlen(argv[argc-1]);
-			ptr = malloc(sizeof(char) * buff_tree + sizeof(char) + sizeof(char));
-			strcpy(ptr, NAMEFILE);
-			strcat(ptr, "/");
-			strcat(ptr, argv[argc-1]);
-		}
-		showTree(ptr);
-
-		free(ptr);
-	}
-
-	return 0;
+	}*/
 }

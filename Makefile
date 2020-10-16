@@ -2,7 +2,7 @@ VERSION = 1.01
 PREFIX = /usr/local/bin
 CC = gcc
 CFLAGS = -Wall -g
-SOURCES = easydir.c handerror.c main.c
+SOURCES = easydir.c handerror.c implementation.c main.c
 OBJECTS = $(SOURCES:.c=.o)
 EXECUTABLE = lpass
 
