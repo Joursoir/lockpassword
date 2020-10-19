@@ -12,17 +12,22 @@
 
 // == global var == 
 extern char *gPath_rootdir;
+extern char *gSecret_gpgkey;
 
 char* getPassword(char *path, char *password, int maxlen)
 {
-	FILE *filePass;
-	filePass = fopen(path, "r");
-	if(filePass == NULL) {
-		if(errno == ENOENT) { // file doesn't exist
-			printError("lpass: No such file exists\n");
-		}
-		callError(110);
+	// gpg 
+	int pid = fork();
+	if(pid == 1) callError(126);
+	if(pid == 0) {
+		execlp("gpg", "-d", "--quiet", "-r", gSecret_gpgkey, "-o", "gap", path, NULL);
+		perror("gpg");
+		exit(4);
 	}
+	wait(&pid);
+
+	FILE *filePass = fopen("gap", "r");
+	if(filePass == NULL) callError(127);
 
 	char sign[maxlen];
 	if(!fgets(sign, sizeof(sign), filePass)) {
@@ -31,6 +36,8 @@ char* getPassword(char *path, char *password, int maxlen)
 
 	strcpy(password, sign);
 	fclose(filePass);
+
+	remove("gap");
 	return password;
 }
 
@@ -90,6 +97,17 @@ void insertPass(char *add_path, char *password)
 	}
 	fputs(password, filePass);
 	fclose(filePass);
+
+	// gpg 
+	int pid = fork();
+	if(pid == 1) callError(225);
+	if(pid == 0) {
+		execlp("gpg", "-a", "-r", gSecret_gpgkey, "-e", file_path, NULL);
+		perror("gpg");
+		exit(4);
+	}
+	wait(&pid);
+	remove(file_path);
 
 	free(main_path);
 	free(file_path);
