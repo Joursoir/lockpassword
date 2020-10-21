@@ -4,40 +4,65 @@
 #include <termios.h>
 #include <string.h>
 #include <time.h>
-#include <sys/wait.h>
 #include <errno.h>
 
 #include "handerror.h"
 #include "easydir.h"
 
+#define GPG_OUTPUT_FILE ".gap"
+#define GPG_PUBLICKEY_MAXLENGTH 1025 // +1 for '\0'
+
 // == global var == 
-extern char *gPath_rootdir;
-extern char *gSecret_gpgkey;
+extern char *gPath_rootdir; // /home/[username]/.lockpassword/
+extern char *gPath_subdir; // example: programming/github.com
+extern char *gPath_pass; // example: programming/github.com/joursoir.gpg
 
-char* getPassword(char *path, char *password, int maxlen)
+void checkForbiddenPaths(char *path) // check two dot in path
 {
-	// gpg 
-	int pid = fork();
-	if(pid == 1) callError(126);
-	if(pid == 0) {
-		execlp("gpg", "-d", "--quiet", "-r", gSecret_gpgkey, "-o", "gap", path, NULL);
-		perror("gpg");
-		exit(4);
+	int firstdot = 0;
+	for(int i=0; i < strlen(path); i++)
+	{
+		if(path[i] == '.')
+			firstdot ? printError("Error: please, don't use forbidden paths\n") : firstdot++;
+		else firstdot = 0;
 	}
-	wait(&pid);
+}
 
-	FILE *filePass = fopen("gap", "r");
+static char *getGPGKey(char *dest, size_t size)
+{
+	FILE *fileGPG = fopen(".gpg-key", "r");
+	if(fileGPG == NULL) {
+		if(errno == ENOENT) printError("error: No GPG key exists\n");
+		callError(121);
+	}
+
+	if(!fgets(dest, size, fileGPG)) {
+		callError(122);
+	}
+	fclose(fileGPG);
+
+	return dest;
+}
+
+char* getPassword(char *path_pass, char *password, size_t size) // path_pass is not used
+{
+	int size_gpgkey = sizeof(char) * GPG_PUBLICKEY_MAXLENGTH;
+	char *secret_gpgkey = (char *) malloc(size_gpgkey);
+	getGPGKey(secret_gpgkey, size_gpgkey);
+
+	char *arguments[] = {"gpg", "-d", "--quiet", "-r", secret_gpgkey, "-o", GPG_OUTPUT_FILE, gPath_pass, NULL};
+	easyFork("gpg", arguments);
+
+	FILE *filePass = fopen(GPG_OUTPUT_FILE, "r");
 	if(filePass == NULL) callError(127);
 
-	char sign[maxlen];
-	if(!fgets(sign, sizeof(sign), filePass)) {
+	if(!fgets(password, size, filePass)) {
 		callError(111);
 	}
-
-	strcpy(password, sign);
 	fclose(filePass);
 
-	remove("gap");
+	free(secret_gpgkey);
+	remove(GPG_OUTPUT_FILE);
 	return password;
 }
 
@@ -56,61 +81,33 @@ void nonvisibleEnter(int status)
 
 void insertPass(char *add_path, char *password)
 {
-	/* gPath_rootdir = /home/[username]/.lock-password/Password-Storage/
+	/* gPath_rootdir = /home/[username]/.lock-password/
 	add_path = banks/france/[number]
-	main_path = banks/france
-	file_path = [number] */
+	gPath_pass = banks/france/[number].gpg
+	gPath_subdir = banks/france */
 
-	char *main_path = malloc( sizeof(char) * (strlen(add_path)+1) );
-	char *file_path = malloc( sizeof(char) * (strlen(add_path)+1) );
+	int size_gpgkey = sizeof(char) * GPG_PUBLICKEY_MAXLENGTH;
+	char *secret_gpgkey = (char *) malloc(size_gpgkey);
+	getGPGKey(secret_gpgkey, size_gpgkey);
 
-	if(splitPath(add_path, main_path, file_path) == NULL) {
-		printError("lpass: The path you specified is incorrect\n");
-	}
-
-	int pass_buf = strlen(gPath_rootdir) + strlen(add_path) + 1;
-	char *final_path = (char*) malloc(sizeof(char) * pass_buf);
-
-	strcpy(final_path, gPath_rootdir);
-	strcat(final_path, main_path);
-
-	if(strcmp(main_path, "") != 0) {
-		int pid = fork();
-		if(pid == -1) callError(103);
-		if(pid == 0) { /* new process */
-			execlp("mkdir", "mkdir", "-p", main_path, NULL);
-			perror("mkdir");
-			exit(4);
-		}
-		wait(&pid);
-	}
-	
-	if(chdir(final_path) != 0) {
-		callError(107);
-	}
+	char *arguments1[] = {"mkdir", "-p", gPath_subdir, NULL};
+	easyFork("mkdir", arguments1);
 
 	// create file, copy password there
 	FILE *filePass;
-	filePass = fopen(file_path, "w");	
+	filePass = fopen(add_path, "w");	
 	if(filePass == NULL) {
 		callError(108);
 	}
 	fputs(password, filePass);
 	fclose(filePass);
 
-	// gpg 
-	int pid = fork();
-	if(pid == 1) callError(225);
-	if(pid == 0) {
-		execlp("gpg", "-a", "-r", gSecret_gpgkey, "-e", file_path, NULL);
-		perror("gpg");
-		exit(4);
-	}
-	wait(&pid);
-	remove(file_path);
+	// encryption
+	char *arguments2[] = {"gpg", "-r", secret_gpgkey, "-e", add_path, NULL};
+	easyFork("gpg", arguments2);
 
-	free(main_path);
-	free(file_path);
+	remove(add_path);
+	free(secret_gpgkey);
 }
 
 char *typePass(char *text, char *dest, int minlen, int maxlen)

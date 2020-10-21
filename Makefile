@@ -1,4 +1,3 @@
-VERSION = 1.01
 PREFIX = /usr/local/bin
 CC = gcc
 CFLAGS = -Wall -g
@@ -21,8 +20,6 @@ $(EXECUTABLE): $(OBJECTS)
 
 install: all
 	@echo installing file to $(PREFIX)
-	#@mkdir -p $(PREFIX)
-	#@cp -f $(EXECUTABLE) $(PREFIX)
 	@install $(EXECUTABLE) $(PREFIX)
 	@chmod 755 $(PREFIX)/$(EXECUTABLE)
 

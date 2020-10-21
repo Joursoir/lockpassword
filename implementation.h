@@ -1,6 +1,7 @@
 #ifndef IMPLEMENTATION_H
 #define IMPLEMENTATION_H
 
+void checkForbiddenPaths(char *path);
 char* getPassword(char *path, char *password, int maxlen);
 void nonvisibleEnter(int status);
 void insertPass(char *add_path, char *password);
