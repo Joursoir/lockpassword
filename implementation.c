@@ -103,7 +103,7 @@ void insertPass(char *add_path, char *password)
 	fclose(filePass);
 
 	// encryption
-	char *arguments2[] = {"gpg", "-r", secret_gpgkey, "-e", add_path, NULL};
+	char *arguments2[] = {"gpg", "--quiet", "--yes", "-r", secret_gpgkey, "-e", add_path, NULL};
 	easyFork("gpg", arguments2);
 
 	remove(add_path);
@@ -136,24 +136,31 @@ char *typePass(char *text, char *dest, int minlen, int maxlen)
 	return dest;
 }
 
-int userEnterPassword(int minlen, int maxlen, char *path_insert)
+int userEnterPassword(int minlen, int maxlen, char *path_insert, int flag_echo)
 {
 	char *pass_one = (char *) malloc(sizeof(char) * maxlen);
-	char *pass_two = (char *) malloc(sizeof(char) * maxlen);
-
-	nonvisibleEnter(1); // change terminal work
-	typePass("Please type your new password: ", pass_one, minlen, maxlen);
-	typePass("Please type your new password again: ", pass_two, minlen, maxlen);
-	nonvisibleEnter(0);
-
 	int rvalue = 0;
-	if(strcmp(pass_one, pass_two) == 0) {
+	if(!flag_echo) {
+		char *pass_two = (char *) malloc(sizeof(char) * maxlen);
+
+		nonvisibleEnter(1); // change terminal work
+		typePass("Type your password: ", pass_one, minlen, maxlen);
+		typePass("Type your password again: ", pass_two, minlen, maxlen);
+		nonvisibleEnter(0);
+
+		if(strcmp(pass_one, pass_two) == 0) {
+			insertPass(path_insert, pass_one);
+			rvalue = 1;
+		}
+		free(pass_two);
+	}
+	else {
+		typePass("Type your password: ", pass_one, minlen, maxlen);
 		insertPass(path_insert, pass_one);
 		rvalue = 1;
 	}
 
 	free(pass_one);
-	free(pass_two);
 	return rvalue;
 }
 
@@ -204,29 +211,28 @@ static void clearStdinBuff()
 }
 
 
-int getAnswer(char *text)
+int getOverwriteAnswer(char *path)
 {
+	int buffSize = (strlen("Password for '' exists. Overwrite? (Y/N)") + strlen(path) + 1)* sizeof(char);
+	char *text = malloc(buffSize);
+	snprintf(text, buffSize, "Password for '%s' exists. Overwrite? (Y/N)", path);
+	printf("%s ", text);
+
 	char answer;
-	printf("%s\n", text);
-	while( (answer = fgetc(stdin)) )
+	while((answer = fgetc(stdin)))
 	{
 		clearStdinBuff();
 		switch(answer)
 		{
 			case 'Y':
-			case 'y':
-				return 1;
+			case 'y': { free(text); return 1; }
 			case 'N':
-			case 'n':
-				return 0;
-			case EOF:
-				printError("lpass: Unexpected end of file\n");
-			default: {
-				printf("%s\n", text);
-				break;
-			}
+			case 'n': { free(text); return 0; }
+			case EOF: printError("Error: Unexpected end of file\n");
+			default: { printf("%s ", text); break; }
 		}
 	}
 
+	free(text);
 	return -1;
 }
