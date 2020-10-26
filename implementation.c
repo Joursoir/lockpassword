@@ -8,9 +8,10 @@
 
 #include "handerror.h"
 #include "easydir.h"
+#include "implementation.h"
 
-#define GPG_OUTPUT_FILE ".gap"
-#define GPG_PUBLICKEY_MAXLENGTH 1025 // +1 for '\0'
+/* define in implementation.h */
+// GPG_PUBLICKEY_MAXLENGTH 1025
 
 // == global var == 
 extern char *gPath_rootdir; // /home/[username]/.lockpassword/
@@ -28,7 +29,7 @@ void checkForbiddenPaths(char *path) // check two dot in path
 	}
 }
 
-static char *getGPGKey(char *dest, size_t size)
+char *getGPGKey(char *dest, size_t size)
 {
 	FILE *fileGPG = fopen(".gpg-key", "r");
 	if(fileGPG == NULL) {
@@ -44,16 +45,16 @@ static char *getGPGKey(char *dest, size_t size)
 	return dest;
 }
 
-char* getPassword(char *path_pass, char *password, size_t size) // path_pass is not used
+char* getPassword(char *path_pass, char *password, size_t size)
 {
 	int size_gpgkey = sizeof(char) * GPG_PUBLICKEY_MAXLENGTH;
 	char *secret_gpgkey = (char *) malloc(size_gpgkey);
 	getGPGKey(secret_gpgkey, size_gpgkey);
 
-	char *arguments[] = {"gpg", "-d", "--quiet", "-r", secret_gpgkey, "-o", GPG_OUTPUT_FILE, gPath_pass, NULL};
+	char *arguments[] = {"gpg", "-d", "--quiet", "-r", secret_gpgkey, "-o", path_pass, gPath_pass, NULL};
 	easyFork("gpg", arguments);
 
-	FILE *filePass = fopen(GPG_OUTPUT_FILE, "r");
+	FILE *filePass = fopen(path_pass, "r");
 	if(filePass == NULL) callError(127);
 
 	if(!fgets(password, size, filePass)) {
@@ -61,8 +62,8 @@ char* getPassword(char *path_pass, char *password, size_t size) // path_pass is 
 	}
 	fclose(filePass);
 
+	remove(path_pass);
 	free(secret_gpgkey);
-	remove(GPG_OUTPUT_FILE);
 	return password;
 }
 
@@ -218,7 +219,7 @@ int getOverwriteAnswer(char *path)
 	snprintf(text, buffSize, "Password for '%s' exists. Overwrite? (Y/N)", path);
 	printf("%s ", text);
 
-	char answer;
+	int answer;
 	while((answer = fgetc(stdin)))
 	{
 		clearStdinBuff();

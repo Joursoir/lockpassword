@@ -20,7 +20,9 @@
 
 #define VERSION "1.0"
 #define DATE_RELEASE "21 October, 2020"
-#define DEBUG
+//#define DEBUG
+#define STANDARD_TEXTEDITOR "vim"
+#define MAXLEN_TEXTEDITOR 16
 #define MINLEN_PASSWORD 1
 #define MAXLEN_PASSWORD 128
 #define STANDARD_AMOUNT_GENERATE_SYMBOLS 14
@@ -28,6 +30,7 @@
 #define GPGKEY_FILE "/.gpg-key"
 
 #define TREE_OUTPUT_FILE ".tree"
+#define TEXTEDITOR_FILE ".text-editor"
 
 #define HASH_INIT 6385337657
 #define HASH_HELP 6385292014
@@ -43,10 +46,10 @@
 #define HASH_DELETE 6953426453624
 #define WITHOUT_ARGUMENTS 1
 
-#define STR_SHOWTREEUSE "Use: lpass [-c=passname] [passname]"
+#define STR_SHOWTREEUSE "Use: lpass [-c=passname] [passname]\n"
 #define STR_INITUSE "Use: lpass init gpg-key\n"
 #define STR_INSERTUSE "Use: lpass insert [-ef] passname\n"
-//#define STR_EDITUSE "Use: lpass edit [-e] passname\n"
+#define STR_EDITUSE "Use: lpass edit [-t=text-editor] passname\n"
 #define STR_GENERATEUSE "Use: lpass generate [-l=pass-length] [-f] passname\n"
 #define STR_REMOVEUSE "Use: lpass remove/rm/delete passname\n"
 
@@ -108,7 +111,91 @@ static void cmd_copy(int argc, char *argv[])
 
 static void cmd_edit(int argc, char *argv[])
 {
-	printf("Coming soon...\n");
+	const struct option long_options[] = {
+        {"text-editor", required_argument, NULL, 't'},
+        {NULL, 0, NULL, 0}
+    };
+
+    int result;
+    while((result = getopt_long(argc, argv, "t:", long_options, NULL)) != -1) {
+    	switch(result) {
+    		case 't':
+    		{
+    			// create file, copy name text editor there
+				FILE *f_texteditor = fopen(TEXTEDITOR_FILE, "w");	
+				if(f_texteditor == NULL) callError(108);
+				fputs(optarg, f_texteditor);
+				fclose(f_texteditor);
+				printf("You changed text editor to %s\n", optarg);
+    			break;
+    		}
+    		default: printError(STR_EDITUSE);
+    	}
+    }
+
+    if(optind < argc) optind++; // for skip "edit"
+    #if defined(DEBUG)
+    	for(int i=0; i < argc; i++) printf("arg: %s\n", argv[i]);
+    	printf("passname: %s\n", argv[optind]);
+    #endif
+    
+    char *path_to_password;
+    if(argv[optind] == NULL) printError(STR_EDITUSE);
+    else path_to_password = argv[optind];
+
+	checkForbiddenPaths(path_to_password);
+	globalSplitPath(path_to_password);
+
+	if(checkFileExist(gPath_pass) != 1)
+		printError("Error: No such file exists\n");
+
+	// configure text editor file 
+	char text_editor[MAXLEN_TEXTEDITOR];
+	FILE *f_texteditor = fopen(TEXTEDITOR_FILE, "r");	
+	if(f_texteditor == NULL) {
+		f_texteditor = fopen(TEXTEDITOR_FILE, "w");	
+		if(f_texteditor == NULL) callError(108);
+		fputs(STANDARD_TEXTEDITOR, f_texteditor); // in file
+		strcpy(text_editor, STANDARD_TEXTEDITOR); // in variable
+	}
+	else {
+		if(!fgets(text_editor, sizeof(char)*MAXLEN_TEXTEDITOR, f_texteditor))
+			callError(122);
+	}
+	fclose(f_texteditor);
+
+	#if defined(DEBUG)
+		printf("using text editor: %s\n", text_editor);
+	#endif
+	// end configure
+
+	// decryption
+	int size_gpgkey = sizeof(char) * GPG_PUBLICKEY_MAXLENGTH;
+	char *secret_gpgkey = (char *) malloc(size_gpgkey);
+	getGPGKey(secret_gpgkey, size_gpgkey);
+
+	char *decryp_arg[] = {"gpg", "-d", "--quiet", "-r", secret_gpgkey, "-o", path_to_password, gPath_pass, NULL};
+	easyFork("gpg", decryp_arg);
+
+	// start vim/etc for edit passowrd
+	char *texte_arg[] = {text_editor, path_to_password, NULL};
+	easyFork(text_editor, texte_arg);
+
+	// delete '\n' and paste good pass
+	char password[MAXLEN_PASSWORD];
+	fileCropLineFeed(path_to_password, password, MAXLEN_PASSWORD);
+
+	FILE *file = fopen(path_to_password, "w");	
+	if(file == NULL) callError(108);
+	fputs(password, file);
+	fclose(file);
+
+	// encryption
+	char *encryp_arg[] = {"gpg", "--quiet", "--yes", "-r", secret_gpgkey, "-e", path_to_password, NULL};
+	easyFork("gpg", encryp_arg);
+
+	remove(path_to_password);
+	free(secret_gpgkey);
 }
 
 static void cmd_move(int argc, char *argv[])
@@ -159,7 +246,7 @@ static void cmd_generate(int argc, char *argv[])
 	if(checkFileExist(gPath_pass) == 1) {
 		if(!flag_force) {
 			if(getOverwriteAnswer(path_to_password) != 1)
-				exit(EXIT_SUCCESS);
+				return;
 		}
 	}
 
@@ -205,7 +292,7 @@ static void cmd_insert(int argc, char *argv[])
 	if(checkFileExist(gPath_pass) == 1) {
 		if(!flag_force) {
 			if(getOverwriteAnswer(path_to_password) != 1)
-				exit(EXIT_SUCCESS);
+				return;
 		}
 	}
 			
@@ -224,7 +311,7 @@ static void cmd_remove(int argc, char *argv[])
 	checkForbiddenPaths(path_to_password);
 	globalSplitPath(path_to_password);
 
-	if(checkFileExist(gPath_pass) == 0)
+	if(checkFileExist(gPath_pass) != 1)
 		printError("Error: No such file exists\n");
 
 	if(deleteFile(gPath_pass))

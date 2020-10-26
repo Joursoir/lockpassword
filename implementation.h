@@ -1,8 +1,11 @@
 #ifndef IMPLEMENTATION_H
 #define IMPLEMENTATION_H
 
+#define GPG_PUBLICKEY_MAXLENGTH 1025 // +1 for '\0'
+
 void checkForbiddenPaths(char *path);
-char* getPassword(char *path, char *password, int maxlen);
+char *getGPGKey(char *dest, size_t size);
+char* getPassword(char *path_pass, char *password, size_t size);
 void nonvisibleEnter(int status);
 void insertPass(char *add_path, char *password);
 char *typePass(char *text, char *dest, int minlen, int maxlen);
