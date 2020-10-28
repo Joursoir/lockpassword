@@ -35,7 +35,6 @@
 #define HASH_INIT 6385337657
 #define HASH_HELP 6385292014
 #define HASH_VERSION 229486327000139
-#define HASH_COPY 6385123360
 #define HASH_EDIT 6385183019
 #define HASH_MV 5863624
 #define HASH_MOVE 249844339311324255
@@ -52,7 +51,7 @@
 #define STR_EDITUSE "Use: lpass edit [-t=text-editor] passname\n"
 #define STR_GENERATEUSE "Use: lpass generate [-l=pass-length] [-f] passname\n"
 #define STR_REMOVEUSE "Use: lpass remove/rm/delete passname\n"
-#define STR_MOVEUSE "Use: lpass move/mv [-f] old-path new-path"
+#define STR_MOVEUSE "Use: lpass move/mv [-f] old-path new-path\n"
 
 // == global var == 
 char *gPath_rootdir; // /home/[username]/.lockpassword/
@@ -103,11 +102,6 @@ static void cmd_init(int argc, char *argv[])
 
 	free(path_init_storage);
 	printf("LockPassword initialized for %s\n", gpg_key);
-}
-
-static void cmd_copy(int argc, char *argv[])
-{
-	printf("Coming soon...\n");
 }
 
 static void cmd_edit(int argc, char *argv[])
@@ -258,18 +252,20 @@ static void cmd_move(int argc, char *argv[])
 
 static void cmd_generate(int argc, char *argv[])
 {
-	int pass_length = STANDARD_AMOUNT_GENERATE_SYMBOLS, flag_force = 0, result;
+	int pass_length = STANDARD_AMOUNT_GENERATE_SYMBOLS, flag_force = 0, flag_copy = 0, result;
 	const struct option long_options[] = {
         {"length", required_argument, NULL, 'l'},
         {"force", no_argument, NULL, 'f'},
+        {"copy", no_argument, NULL, 'c'},
         {NULL, 0, NULL, 0}
     };
 
-    while((result = getopt_long(argc, argv, "l:f", long_options, NULL)) != -1) {
+    while((result = getopt_long(argc, argv, "l:fc", long_options, NULL)) != -1) {
     	switch(result) {
     		// if optarg - incorrect number, atoi return 0
     		case 'l': { pass_length = atoi(optarg); break; }
     		case 'f': { flag_force = 1; break; }
+    		case 'c': { flag_copy = 1; break; }
     		default: printError(STR_GENERATEUSE);
     	}
     }
@@ -301,24 +297,26 @@ static void cmd_generate(int argc, char *argv[])
 	char gpass[MAXLEN_PASSWORD];
 	generatePassword(gpass, pass_length, MAXLEN_PASSWORD);
 
-	insertPass(path_to_password, gpass);
-	printf("Generated password: %s\n", gpass);
+	insertPass(path_to_password, gpass, flag_copy);
+	if(!flag_copy) printf("Generated password: %s\n", gpass);
 	printf("Password added successfully for %s\n", path_to_password);
 }
 
 static void cmd_insert(int argc, char *argv[])
 {
-	int flag_echo = 0, flag_force = 0, result;
+	int flag_echo = 0, flag_force = 0, flag_copy = 0, result;
 	const struct option long_options[] = {
         {"echo", no_argument, NULL, 'e'},
         {"force", no_argument, NULL, 'f'},
+        {"copy", no_argument, NULL, 'c'},
         {NULL, 0, NULL, 0}
     };
 
-    while((result = getopt_long(argc, argv, "ef", long_options, NULL)) != -1) {
+    while((result = getopt_long(argc, argv, "efc", long_options, NULL)) != -1) {
     	switch(result) {
     		case 'e': { flag_echo = 1; break; }
     		case 'f': { flag_force = 1; break; }
+    		case 'c': { flag_copy = 1; break; }
     		default: printError(STR_INSERTUSE);
     	}
     }
@@ -343,8 +341,9 @@ static void cmd_insert(int argc, char *argv[])
 		}
 	}
 			
-	if(userEnterPassword(MINLEN_PASSWORD, MAXLEN_PASSWORD, path_to_password, flag_echo) == 1)
+	if(userEnterPassword(MINLEN_PASSWORD, MAXLEN_PASSWORD, path_to_password, flag_echo, flag_copy) == 1) {
 		printf("Password added successfully for %s\n", path_to_password);
+	}
 	else
 		printf("Passwords do not match\n");
 }
@@ -370,28 +369,30 @@ static void cmd_showtree(int argc, char *argv[])
 	int flag_copy = 0, result;
 	char *path;
 	const struct option long_options[] = {
-        {"copy", required_argument, NULL, 'c'},
+        {"copy", no_argument, NULL, 'c'},
         {NULL, 0, NULL, 0}
     };
 
-    while((result = getopt_long(argc, argv, "c:", long_options, NULL)) != -1) {
+    while((result = getopt_long(argc, argv, "c", long_options, NULL)) != -1) {
     	switch(result) {
-    		case 'c': { flag_copy = 1; path = optarg; break; }
+    		case 'c': { flag_copy = 1; break; }
     		default: printError(STR_SHOWTREEUSE);
     	}
     }
 
     #if defined(DEBUG)
     	for(int i=0; i < argc; i++) printf("arg: %s\n", argv[i]);
+    	printf("passname: %s\n", argv[optind]);
     #endif
-    
-    if(!flag_copy) {
-    	if(argv[1] == NULL) {
+
+    if(argv[optind] == NULL) {
+    	if(flag_copy) printError(STR_SHOWTREEUSE);
+    	else {
     		path = (char *) malloc(sizeof(char) * 2);
     		strcpy(path, ".");
     	}
-    	else path = argv[1];
     }
+    else path = argv[optind];
     checkForbiddenPaths(path);
 
 	if(opendir(path) != NULL) // if it's directory
@@ -419,8 +420,8 @@ static void cmd_showtree(int argc, char *argv[])
 		if(checkFileExist(gPath_pass) == 1) // exist
 		{
 			char password[MAXLEN_PASSWORD];
-			getPassword(path, password, sizeof(char)*MAXLEN_PASSWORD);
-			printf("%s\n", password);
+			getPassword(path, password, sizeof(char)*MAXLEN_PASSWORD, flag_copy);
+			if(!flag_copy) printf("%s\n", password);
 		}
 		else printf("Error: %s is not in the password storage\n", path);
 	}
@@ -468,7 +469,6 @@ int main(int argc, char *argv[])
 	switch(ihash)
 	{
 		case HASH_INIT: { cmd_init(argc, argv); break; }
-		case HASH_COPY: { cmd_copy(argc, argv); break; }
 		case HASH_EDIT: { cmd_edit(argc, argv); break; }
 		case HASH_MV:
 		case HASH_MOVE: { cmd_move(argc, argv); break; }

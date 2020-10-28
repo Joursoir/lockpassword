@@ -3,6 +3,7 @@ CC = gcc
 CFLAGS = -Wall -g
 SOURCES = easydir.c handerror.c implementation.c main.c
 OBJECTS = $(SOURCES:.c=.o)
+BASH = lpass_copy.sh
 EXECUTABLE = lpass
 
 .PHONY: all clean install uninstall
@@ -19,10 +20,13 @@ $(EXECUTABLE): $(OBJECTS)
 	@$(CC) $(CFLAGS) -o $(EXECUTABLE) $(OBJECTS)
 
 install: all
-	@echo installing file to $(PREFIX)
+	@echo installing files to $(PREFIX)
 	@install $(EXECUTABLE) $(PREFIX)
 	@chmod 755 $(PREFIX)/$(EXECUTABLE)
+	@install $(BASH) $(PREFIX)
+	@chmod 755 $(PREFIX)/$(BASH)
 
 uninstall:
-	@echo removing file from $(PREFIX)
+	@echo removing files from $(PREFIX)
 	@rm -rf $(PREFIX)/$(EXECUTABLE)
+	@rm -rf $(PREFIX)/$(BASH)

@@ -13,10 +13,23 @@
 /* define in implementation.h */
 // GPG_PUBLICKEY_MAXLENGTH 1025
 
+#define BASH_EXEC_COPY "lpass_copy.sh"
+
 // == global var == 
 extern char *gPath_rootdir; // /home/[username]/.lockpassword/
 extern char *gPath_subdir; // example: programming/github.com
 extern char *gPath_pass; // example: programming/github.com/joursoir.gpg
+
+static void copyText(char *password)
+{
+	size_t size = (strlen(password) + strlen(BASH_EXEC_COPY) + 1) * sizeof(char);
+	char *command = malloc(size);
+
+	snprintf(command, size, "%s %s", BASH_EXEC_COPY, password);
+	system(command);
+
+	free(command);
+}
 
 void checkForbiddenPaths(char *path) // check two dot in path
 {
@@ -45,7 +58,7 @@ char *getGPGKey(char *dest, size_t size)
 	return dest;
 }
 
-char* getPassword(char *path_pass, char *password, size_t size)
+char* getPassword(char *path_pass, char *password, size_t size, int flag_copy)
 {
 	int size_gpgkey = sizeof(char) * GPG_PUBLICKEY_MAXLENGTH;
 	char *secret_gpgkey = (char *) malloc(size_gpgkey);
@@ -61,6 +74,8 @@ char* getPassword(char *path_pass, char *password, size_t size)
 		callError(111);
 	}
 	fclose(filePass);
+
+	if(flag_copy) copyText(password);
 
 	remove(path_pass);
 	free(secret_gpgkey);
@@ -80,7 +95,7 @@ void nonvisibleEnter(int status)
 	tcsetattr(0, TCSANOW, &term_settings);
 }
 
-void insertPass(char *add_path, char *password)
+void insertPass(char *add_path, char *password, int flag_copy)
 {
 	/* gPath_rootdir = /home/[username]/.lock-password/
 	add_path = banks/france/[number]
@@ -102,6 +117,8 @@ void insertPass(char *add_path, char *password)
 	}
 	fputs(password, filePass);
 	fclose(filePass);
+
+	if(flag_copy) copyText(password);
 
 	// encryption
 	char *arguments2[] = {"gpg", "--quiet", "--yes", "-r", secret_gpgkey, "-e", add_path, NULL};
@@ -137,7 +154,7 @@ char *typePass(char *text, char *dest, int minlen, int maxlen)
 	return dest;
 }
 
-int userEnterPassword(int minlen, int maxlen, char *path_insert, int flag_echo)
+int userEnterPassword(int minlen, int maxlen, char *path_insert, int flag_echo, int flag_copy)
 {
 	char *pass_one = (char *) malloc(sizeof(char) * maxlen);
 	int rvalue = 0;
@@ -150,14 +167,14 @@ int userEnterPassword(int minlen, int maxlen, char *path_insert, int flag_echo)
 		nonvisibleEnter(0);
 
 		if(strcmp(pass_one, pass_two) == 0) {
-			insertPass(path_insert, pass_one);
+			insertPass(path_insert, pass_one, flag_copy);
 			rvalue = 1;
 		}
 		free(pass_two);
 	}
 	else {
 		typePass("Type your password: ", pass_one, minlen, maxlen);
-		insertPass(path_insert, pass_one);
+		insertPass(path_insert, pass_one, flag_copy);
 		rvalue = 1;
 	}
 
