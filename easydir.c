@@ -31,11 +31,12 @@ int checkFileExist(char *path_to_file)
 {
 	FILE *pFile;
 
-	pFile = fopen(path_to_file, "r");
+	pFile = fopen(path_to_file, "r+"); // r+ so that errno can equal EISDIR
 	if(pFile == NULL) {
-		if(errno == ENOENT) { // file doesn't exist
+		if(errno == ENOENT) // file doesn't exist
 			return 0;
-		}
+		if(errno == EISDIR) // it's directory
+			return 2;
 		else callError(120);
 	}
 	fclose(pFile);

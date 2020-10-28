@@ -52,6 +52,7 @@
 #define STR_EDITUSE "Use: lpass edit [-t=text-editor] passname\n"
 #define STR_GENERATEUSE "Use: lpass generate [-l=pass-length] [-f] passname\n"
 #define STR_REMOVEUSE "Use: lpass remove/rm/delete passname\n"
+#define STR_MOVEUSE "Use: lpass move/mv [-f] old-path new-path"
 
 // == global var == 
 char *gPath_rootdir; // /home/[username]/.lockpassword/
@@ -200,13 +201,59 @@ static void cmd_edit(int argc, char *argv[])
 
 static void cmd_move(int argc, char *argv[])
 {
-	char *old_path = argv[2];
-	char *new_path = argv[argc-1];
+	/* we have a two situation:
+	1) mv file file
+	2) mv file directory */
 
-	if(old_path == new_path)
-		printError("Use: lpass move/mv [old path] [new path]");
+	const struct option long_options[] = {
+        {"force", no_argument, NULL, 'f'},
+        {NULL, 0, NULL, 0}
+    };
 
-	// soon ...
+    int result, flag_force = 0;
+    while((result = getopt_long(argc, argv, "f", long_options, NULL)) != -1) {
+    	switch(result) {
+    		case 'f': { flag_force = 1; break; }
+    		default: printError(STR_MOVEUSE);
+    	}
+    }
+
+    if(optind < argc) optind++; // for skip "move"
+    #if defined(DEBUG)
+    	for(int i=0; i < argc; i++) printf("arg: %s\n", argv[i]);
+    	printf("old-path: %s\n", argv[optind]);
+    	if(argv[optind] != NULL) printf("new-path: %s\n", argv[optind+1]);
+    #endif
+    
+    if(argv[optind] == NULL) printError(STR_MOVEUSE);
+    if(argv[optind+1] == NULL) printError(STR_MOVEUSE);
+
+	char *old_path = argv[optind];
+	checkForbiddenPaths(old_path); globalSplitPath(old_path);
+	if(checkFileExist(gPath_pass) != 1) printError("Error: No such old-path exists\n");
+
+	char *old_path_gpg = gPath_pass;
+	char *old_path_subdir = gPath_subdir;
+
+	char *new_path = argv[optind+1];
+	checkForbiddenPaths(new_path); globalSplitPath(new_path);
+
+	if(checkFileExist(new_path) == 2) // if new-path = dir
+		;
+	else if(checkFileExist(gPath_pass) == 1) { // if new-path = file
+		if(!flag_force) {
+			if(getOverwriteAnswer(new_path) != 1)
+				return;
+		}
+		new_path = gPath_pass;
+	}
+	else printError("Error: No such new-path exists\n");
+
+	char *arguments[] = {"mv", "-f", old_path_gpg, new_path, NULL};
+	easyFork("mv", arguments);
+
+	deleteEmptyDir(old_path_subdir);
+	free(old_path_subdir); free(old_path_gpg);
 }
 
 static void cmd_generate(int argc, char *argv[])
