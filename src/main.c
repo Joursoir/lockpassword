@@ -19,7 +19,7 @@
 #include "implementation.h"
 
 #define VERSION "1.0"
-#define DATE_RELEASE "21 October, 2020"
+#define DATE_RELEASE "31 October, 2020"
 //#define DEBUG
 #define STANDARD_TEXTEDITOR "vim"
 #define MAXLEN_TEXTEDITOR 16
@@ -431,14 +431,40 @@ static void cmd_showtree(int argc, char *argv[])
 
 static void cmd_help()
 {
+	printf("Synopsis:\n\tlpass [command] [arguments] ...\n");
 
+	printf("Commands:\n\tinit gpg-key\n");
+	printf("\t\tInitialize the password manager using the passed gpg-key.\n");
+
+	printf("\tinsert [-e, --echo] [-c, --copy] [-f, --force] passname\n");
+	printf("\t\tAdd the specified passname to the password manager.\n");
+
+	printf("\tedit [-t, --text-editor=text-editor] passname\n");
+	printf("\t\tOpen the specified passname in a text editor, waiting for changes.\n");
+
+	printf("\tgenerate [-l, --length=pass-length] [-c, --copy] [-f, --force] passname\n");
+	printf("\t\tGenerate a random password and write it in passname.\n");
+
+	printf("\tmv/move [-f, --force] old-path new-path\n");
+	printf("\t\tMove/rename old-path to new-path.\n");
+
+	printf("\trm/remove/delete passname\n");
+	printf("\t\tRemove the passname you specified from the password manager.\n");
+
+	printf("\thelp\n");
+	printf("\t\tPrint help information about commands and the application itself.\n");
+
+	printf("\tversion\n");
+	printf("\t\tPrint version information.\n");
+
+	printf("\nMore information may be found in the lpass(1) man page.\n");
 }
 
 static void cmd_version()
 {
 	printf("LockPassword v%s\n", VERSION);
 	printf("Release date: %s\n\n", DATE_RELEASE);
-	printf("Code written by Joursoir\n");
+	printf("Code was written by Joursoir\n");
 	printf("This is free and unencumbered software released into the public domain.\n\n");
 }
 

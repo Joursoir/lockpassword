@@ -1,0 +1,162 @@
+.TH "LPASS" "1" "30\ \&OCTOBER\ \&2020" "LPASS v1.0" "LockPassword"
+
+.SH "NAME"
+LockPassword - a password manager.
+
+.SH "SYNOPSIS"
+\fBlpass\fR [\fBcommand\fR] [\fBarguments\fR] ...
+
+.SH "DESCRIPTION"
+\fBlpass\fR \- a simple terminal password manager, using GnuPG to encrypt passwords. The application positions itself as open-source software. Distributed under the Unlicense license.
+
+.SH "COMMANDS"
+\fBinit \fIgpg-key\fR
+.RS 4
+Initialize the password manager using the passed \fIgpg-key\fR as the encryption key. This command must be run first before you start working with LockPassword.
+.RE
+.PP
+
+\fBinsert\fR [\fB-e, --echo\fR] [\fB-c, --copy\fR] [\fB-f, --force\fR] \fIpassname\fR
+.RS 4
+Add the specified \fIpassname\fR to the password manager. The password will be read interactively using standard input, character display is hidden. The \fB-e, --echo\fR argument enable the show of characters when typing a password; \fB-c, --copy\fR write password to clipboard; \fB-f, --force\fR ignore exist of \fIpassname\fR, overwrites it without prompt.
+.RE
+.PP
+
+\fBedit\fR [\fB-t, --text-editor=text-editor\fR] \fIpassname\fR
+.RS 4
+Open the specified \fIpassname\fR in a text editor, waiting for changes. Standard text editor - vim, argument \fB-t, --text-editor = text-editor\fR allow you to change it.
+.RE
+.PP 
+
+\fBgenerate\fR [\fB-l, --length=pass-length\fB] [\fB-c, --copy\fR] [\fB-f, --force\fR] \fIpassname\fR
+.RS 4
+Generate a random password and write it in \fIpassname\fR. The \fB-l, --length = pass-length\fR argument allow you to specify the desired password length. Without this argument, a 14 character password will be generated. \fB-c, --copy\fR write password to clipboard; \fB-f, --force\fR ignore exist of \fIpassname\fR, overwrites it without prompt.
+.RE
+.PP
+
+\fBmv/move\R [\fB-f, --force\fR] \fIold-path\R \fInew-path\fR
+.RS 4
+Move/rename \fIold-path\fR to \fInew-path\fR. \fIold-path\fR must be an exist file, \fInew-path\fR can be a file/directory. The \fB-f, --force\fR argument ignore exist of \fInew-path\fR (if it's a file), overwrites it without prompt.
+.RE
+.PP
+
+\fBrm/remove/delete \fIpassname\fR
+.RS 4
+Remove the \fIpassname\fR you specified from the password manager. If the directories where your \fIpassname\fR was nested became empty after deletion, then they are also deleted.
+.RE
+.PP
+
+\fBhelp\fR
+.RS 4
+Print help information about commands and the application itself.
+.RE
+.PP
+
+\fBversion\fR
+.RS 4
+Print information about the version, release date, and license of the application.
+.RE
+.PP
+
+.SH "EXAMPLES"
+Initialize the password manager:
+.RS 4
+\fB[joursoir@archlin ~]$ lpass init joursoir@github.com\fR
+.br
+mkdir: created directory '/home/joursoir/.lock-password/'R
+.br
+LockPassword initialized successfully
+.RE
+.PP
+
+Add password in the password manager:
+.RS 4
+\fB[joursoir@archlin ~]$ lpass insert games/chess/user\fR
+.br
+Please type your new password: [invisible input]
+.br
+Please type your new password again: [invisible input]
+.br
+Password added successfully for games/chess/user
+.RE
+.PP
+
+Print a list of exists password:
+.RS 4
+\fB[joursoir@archlin ~]$ lpass\fR
+.br
+Password Manager
+.br
+|-- banks
+.br
+|   |-- abankpro
+.br
+|   |   `-- phone_number
+.br
+|   `-- ubank
+.br
+|       `-- phone_number
+.br
+`-- games
+.br
+    `-- chess
+.br
+        |-- site.com
+.br
+        `-- user
+.RE
+.PP
+
+Print a list of exists password in some directory:
+.RS 4
+\fB[joursoir@archlin ~]$ lpass banks\fR
+.br
+Password Manager/banks
+.br
+|-- abankpro
+.br
+|   `-- phone_number
+.br
+`-- ubank
+.br
+    `-- phone_number
+.RE
+.PP
+
+Show password:
+.RS 4
+\fB[joursoir@archlin ~]$ lpass games/iko/LordOfNight\fR
+.br
+helloitismypassword123
+.RE
+.PP
+
+Copy password to clipboard:
+.RS 4
+\fB[joursoir@archlin ~]$ lpass -c games/iko/LordOfNight\fR
+.br
+Password copied to clipboard.
+.RE
+.PP
+
+Generate password:
+.RS 4
+\fB[joursoir@archlin ~]$ lpass generate bank/sbank/phone_number\fR
+.br
+Generated password: NsNu:+^Re(cshW
+.br
+Password added successfully for bank/sbank/phone_number
+.RE
+.PP
+
+.SH "AUTHOR"
+Code was written by Joursoir
+
+.SH "COPYING"
+This is free and unencumbered software released into the public domain.
+
+Anyone is free to copy, modify, publish, use, compile, sell, or distribute this software, either in source code form or as a compiled binary, for any purpose, commercial or non-commercial, and by any means.
+
+In jurisdictions that recognize copyright laws, the author or authors of this software dedicate any and all copyright interest in the software to the public domain. We make this dedication for the benefit of the public at large and to the detriment of our heirs and successors. We intend this dedication to be an overt act of relinquishment in perpetuity of all present and future rights to this software under copyright law.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
