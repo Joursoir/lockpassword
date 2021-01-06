@@ -18,9 +18,9 @@
 #include "handerror.h"
 #include "implementation.h"
 
-#define VERSION "1.0"
-#define DATE_RELEASE "31 October, 2020"
-//#define DEBUG
+#define VERSION "1.0b"
+#define DATE_RELEASE "6 January, 2021"
+#define DEBUG
 #define STANDARD_TEXTEDITOR "vim"
 #define MAXLEN_TEXTEDITOR 16
 #define MINLEN_PASSWORD 1
@@ -45,18 +45,18 @@
 #define HASH_DELETE 6953426453624
 #define WITHOUT_ARGUMENTS 1
 
-#define STR_SHOWTREEUSE "Use: lpass [-c=passname] [passname]\n"
+#define STR_SHOWTREEUSE "Use: lpass [-c] [passname]\n"
 #define STR_INITUSE "Use: lpass init gpg-key\n"
-#define STR_INSERTUSE "Use: lpass insert [-ef] passname\n"
+#define STR_INSERTUSE "Use: lpass insert [-ecf] passname\n"
 #define STR_EDITUSE "Use: lpass edit [-t=text-editor] passname\n"
 #define STR_GENERATEUSE "Use: lpass generate [-l=pass-length] [-f] passname\n"
 #define STR_REMOVEUSE "Use: lpass remove/rm/delete passname\n"
 #define STR_MOVEUSE "Use: lpass move/mv [-f] old-path new-path\n"
 
 // == global var == 
-char *gPath_rootdir; // /home/[username]/.lockpassword/
-char *gPath_subdir; // example: programming/github.com
-char *gPath_pass; // example: programming/github.com/joursoir.gpg
+char *gPath_rootdir = NULL; // /home/[username]/.lockpassword/
+char *gPath_subdir = NULL; // example: programming/github.com
+char *gPath_pass = NULL; // example: programming/github.com/joursoir.gpg
 
 static void globalSplitPath(char *source)
 {
@@ -68,7 +68,7 @@ static void globalSplitPath(char *source)
 
 	gPath_subdir = malloc(sizeof(char) * len_path); // path without working dir and pass file
 	strcpy(gPath_subdir, source);
-	gPath_subdir = dirname(gPath_subdir);
+	dirname(gPath_subdir);
 
 	#if defined(DEBUG)
 		printf("dir: %s\n", gPath_subdir);
