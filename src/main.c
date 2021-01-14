@@ -18,9 +18,8 @@
 #include "handerror.h"
 #include "implementation.h"
 
-#define VERSION "1.0b"
-#define DATE_RELEASE "6 January, 2021"
-#define DEBUG
+#define VERSION "1.0c"
+#define DATE_RELEASE "14 January, 2021"
 #define STANDARD_TEXTEDITOR "vim"
 #define MAXLEN_TEXTEDITOR 16
 #define MINLEN_PASSWORD 1

@@ -93,7 +93,6 @@ helloitismypassword123
 * Copy password to clipboard:
 ```
 [joursoir@archlin ~]$ lpass -c games/iko/LordOfNight
-Password copied to clipboard.
 ```
 
 * Generate password:
@@ -198,7 +197,6 @@ helloitismypassword123
 * Скопировать пароль в буфер обмена:
 ```
 [joursoir@archlin ~]$ lpass -c games/iko/LordOfNight
-Password copied to clipboard.
 ```
 
 * Сгенерировать пароль:

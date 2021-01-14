@@ -22,13 +22,36 @@ extern char *gPath_pass; // example: programming/github.com/joursoir.gpg
 
 static void copyText(char *password)
 {
-	size_t size = (strlen(password) + strlen(BASH_EXEC_COPY) + 1) * sizeof(char);
-	char *command = malloc(size);
+	size_t size = (strlen(gPath_rootdir) + 5 + 1) * sizeof(char);
+	char *simple_path = malloc(size);
+	snprintf(simple_path, size, "%s%s", gPath_rootdir, ".pass");
 
-	snprintf(command, size, "%s %s", BASH_EXEC_COPY, password);
-	system(command);
+	if(getenv("DISPLAY") != NULL)
+	{
+		FILE *f_pass;
+		f_pass = fopen(simple_path, "w");
+		if(f_pass == NULL) {
+			callError(130);
+		}
+		fputs(password, f_pass);
+		fclose(f_pass);
 
-	free(command);
+		char *xclip[] = {"xclip", "-selection", "clipboard", "-i", simple_path, NULL};
+		easyFork("xclip", xclip);
+
+		remove(simple_path);
+		free(simple_path);
+	}
+	else if(getenv("WAYLAND_DISPLAY") != NULL)
+	{
+		char *wl_copy[] = {"wl-copy", password, NULL};
+		easyFork("wl-copy", wl_copy);
+	}
+	else printError("Error: No X11 or Wayland");
+
+	#if defined(DEBUG)
+	  	printf("Password copied to clipboard\n");
+	#endif
 }
 
 void checkForbiddenPaths(char *path) // check two dot in path
