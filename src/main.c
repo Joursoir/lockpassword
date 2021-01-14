@@ -9,7 +9,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <sys/wait.h>
 #include <getopt.h>
 #include <dirent.h>
 #include <libgen.h>
@@ -70,8 +69,8 @@ static void globalSplitPath(char *source)
 	dirname(gPath_subdir);
 
 	#if defined(DEBUG)
-		printf("dir: %s\n", gPath_subdir);
-		printf("pass: %s\n", gPath_pass);
+		printf("g_suddir: %s\n", gPath_subdir);
+		printf("g_pass: %s\n", gPath_pass);
 	#endif
 }
 
@@ -159,21 +158,21 @@ static void cmd_edit(int argc, char *argv[])
 	fclose(f_texteditor);
 
 	#if defined(DEBUG)
-		printf("using text editor: %s\n", text_editor);
+		printf("text editor: %s\n", text_editor);
 	#endif
 	// end configure
 
 	// decryption
 	int size_gpgkey = sizeof(char) * GPG_PUBLICKEY_MAXLENGTH;
-	char *secret_gpgkey = (char *) malloc(size_gpgkey);
-	getGPGKey(secret_gpgkey, size_gpgkey);
+	char *public_gpgkey = (char *) malloc(size_gpgkey);
+	getGPGKey(public_gpgkey, size_gpgkey);
 
-	char *decryp_arg[] = {"gpg", "-d", "--quiet", "-r", secret_gpgkey, "-o", path_to_password, gPath_pass, NULL};
-	easyFork("gpg", decryp_arg);
+	char *decrypt_arg[] = {"gpg", "-d", "--quiet", "-r", public_gpgkey, "-o", path_to_password, gPath_pass, NULL};
+	easyFork("gpg", decrypt_arg);
 
 	// start vim/etc for edit passowrd
-	char *texte_arg[] = {text_editor, path_to_password, NULL};
-	easyFork(text_editor, texte_arg);
+	char *editor_arg[] = {text_editor, path_to_password, NULL};
+	easyFork(text_editor, editor_arg);
 
 	// delete '\n' and paste good pass
 	char password[MAXLEN_PASSWORD];
@@ -185,11 +184,11 @@ static void cmd_edit(int argc, char *argv[])
 	fclose(file);
 
 	// encryption
-	char *encryp_arg[] = {"gpg", "--quiet", "--yes", "-r", secret_gpgkey, "-e", path_to_password, NULL};
-	easyFork("gpg", encryp_arg);
+	char *encrypt_arg[] = {"gpg", "--quiet", "--yes", "-r", public_gpgkey, "-e", path_to_password, NULL};
+	easyFork("gpg", encrypt_arg);
 
 	remove(path_to_password);
-	free(secret_gpgkey);
+	free(public_gpgkey);
 }
 
 static void cmd_move(int argc, char *argv[])
@@ -470,7 +469,7 @@ static void cmd_version()
 int main(int argc, char *argv[])
 {
 	if(!isatty(0)) { // stdin
-		printError("lpass: Please, use a terminal to run this program\n");
+		printError("lpass: Please, use a terminal to run this application\n");
 	}
 
 	/* init global path to root directory */
@@ -512,5 +511,6 @@ int main(int argc, char *argv[])
 		free(gPath_pass);
 	}
 	free(gPath_rootdir);
-	return EXIT_SUCCESS;
+	
+	return 0;
 }

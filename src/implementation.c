@@ -11,9 +11,7 @@
 #include "implementation.h"
 
 /* define in implementation.h */
-// GPG_PUBLICKEY_MAXLENGTH 1025
-
-#define BASH_EXEC_COPY "lpass_copy.sh"
+// GPG_PUBLICKEY_MAXLENGTH NNNN
 
 // == global var == 
 extern char *gPath_rootdir; // /home/[username]/.lockpassword/
@@ -84,10 +82,10 @@ char *getGPGKey(char *dest, size_t size)
 char* getPassword(char *path_pass, char *password, size_t size, int flag_copy)
 {
 	int size_gpgkey = sizeof(char) * GPG_PUBLICKEY_MAXLENGTH;
-	char *secret_gpgkey = (char *) malloc(size_gpgkey);
-	getGPGKey(secret_gpgkey, size_gpgkey);
+	char *public_gpgkey = (char *) malloc(size_gpgkey);
+	getGPGKey(public_gpgkey, size_gpgkey);
 
-	char *arguments[] = {"gpg", "-d", "--quiet", "-r", secret_gpgkey, "-o", path_pass, gPath_pass, NULL};
+	char *arguments[] = {"gpg", "-d", "--quiet", "-r", public_gpgkey, "-o", path_pass, gPath_pass, NULL};
 	easyFork("gpg", arguments);
 
 	FILE *filePass = fopen(path_pass, "r");
@@ -101,7 +99,7 @@ char* getPassword(char *path_pass, char *password, size_t size, int flag_copy)
 	if(flag_copy) copyText(password);
 
 	remove(path_pass);
-	free(secret_gpgkey);
+	free(public_gpgkey);
 	return password;
 }
 
@@ -126,11 +124,11 @@ void insertPass(char *add_path, char *password, int flag_copy)
 	gPath_subdir = banks/france */
 
 	int size_gpgkey = sizeof(char) * GPG_PUBLICKEY_MAXLENGTH;
-	char *secret_gpgkey = (char *) malloc(size_gpgkey);
-	getGPGKey(secret_gpgkey, size_gpgkey);
+	char *public_gpgkey = (char *) malloc(size_gpgkey);
+	getGPGKey(public_gpgkey, size_gpgkey);
 
-	char *arguments1[] = {"mkdir", "-p", gPath_subdir, NULL};
-	easyFork("mkdir", arguments1);
+	char *mkdir_arg[] = {"mkdir", "-p", gPath_subdir, NULL};
+	easyFork("mkdir", mkdir_arg);
 
 	// create file, copy password there
 	FILE *filePass;
@@ -144,11 +142,11 @@ void insertPass(char *add_path, char *password, int flag_copy)
 	if(flag_copy) copyText(password);
 
 	// encryption
-	char *arguments2[] = {"gpg", "--quiet", "--yes", "-r", secret_gpgkey, "-e", add_path, NULL};
-	easyFork("gpg", arguments2);
+	char *encrypt_arg[] = {"gpg", "--quiet", "--yes", "-r", public_gpgkey, "-e", add_path, NULL};
+	easyFork("gpg", encrypt_arg);
 
 	remove(add_path);
-	free(secret_gpgkey);
+	free(public_gpgkey);
 }
 
 char *typePass(char *text, char *dest, int minlen, int maxlen)
