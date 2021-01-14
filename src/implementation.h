@@ -10,7 +10,7 @@ void nonvisibleEnter(int status);
 void insertPass(char *add_path, char *password, int flag_copy);
 char *typePass(char *text, char *dest, int minlen, int maxlen);
 int userEnterPassword(int minlen, int maxlen, char *path_insert, int flag_echo, int flag_copy);
-char *generatePassword(char *dest, int amount, int max_len);
+char *generatePassword(char *dest, int amount);
 unsigned long hash(char *str);
 int getOverwriteAnswer(char *path);
 

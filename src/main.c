@@ -293,8 +293,8 @@ static void cmd_generate(int argc, char *argv[])
 	}
 
 	// generate password 
-	char gpass[MAXLEN_PASSWORD];
-	generatePassword(gpass, pass_length, MAXLEN_PASSWORD);
+	char gpass[pass_length];
+	generatePassword(gpass, pass_length);
 
 	insertPass(path_to_password, gpass, flag_copy);
 	if(!flag_copy) printf("Generated password: %s\n", gpass);

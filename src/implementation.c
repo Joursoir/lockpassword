@@ -205,28 +205,14 @@ int userEnterPassword(int minlen, int maxlen, char *path_insert, int flag_echo, 
 	return rvalue;
 }
 
-char *generatePassword(char *dest, int amount, int max_len)
+char *generatePassword(char *dest, int amount)
 {
-	char allowed_symbols[] = {
-		'A','E','I','J','O','U','B','C','D','F','G','H',
-		'K','L','M','N','P','Q','R','S','T','V','W','X',
-		'Y','Z','a','e','i','j','o','u','b','c','d','f',
-		'g','h','k','l','m','n','p','q','r','s','t','v',
-		'w','x','y','z','1','2','3','4','5','6','7','8',
-		'9','0','!','#','$',';','%','^',':','&','?','*',
-		'(',')','-','_','+','=','<', '>'
-	};
-	int max = sizeof(allowed_symbols);
+	int i, min = 33, max = 126;
+	char password[amount];
+
 	srand(time(NULL));
-
-	char password[max_len];
-	for(int i=0; i < amount; i++)
-	{
-		char c = allowed_symbols[rand() % max];
-
-		password[i] = c;
-		password[i+1] = '\0';
-	}
+	for(i = 0; i < amount; i++) 
+		password[i] = min + rand() % (max-min);
 
 	strcpy(dest, password);
 	return dest;
