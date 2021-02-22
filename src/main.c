@@ -12,6 +12,7 @@
 #include <getopt.h>
 #include <dirent.h>
 #include <libgen.h>
+#include <stdarg.h>
 
 #include "easydir.h"
 #include "handerror.h"
@@ -31,9 +32,25 @@
 #define TREE_OUTPUT_FILE ".tree"
 #define TEXTEDITOR_FILE ".text-editor"
 
+#define usageprint(...) \
+	do { \
+		fprintf(stdout, "Usage: lpass " __VA_ARGS__); \
+		return 1; \
+	} while(0)
+#define errprint(...) \
+	do { \
+		fprintf(stderr, "Error: " __VA_ARGS__); \
+		return 1; \
+	} while(0)
+#ifdef DEBUG
+	#define dbgprint(...) fprintf(stderr, "Debug: " __VA_ARGS__)
+#else
+	#define dbgprint(...) ;
+#endif
+
 struct cmd_struct {
 	const char *cmd;
-	void (*func)(int, char **);
+	int (*func)(int, char **);
 };
 
 static struct cmd_struct commands[] = {
@@ -65,17 +82,15 @@ static void globalSplitPath(char *source)
 	strcpy(gPath_subdir, source);
 	dirname(gPath_subdir);
 
-	#if defined(DEBUG)
-		printf("g_suddir: %s\n", gPath_subdir);
-		printf("g_pass: %s\n", gPath_pass);
-	#endif
+	dbgprint("g_suddir: %s\n", gPath_subdir);
+	dbgprint("g_pass: %s\n", gPath_pass);
 }
 
-void cmd_init(int argc, char *argv[])
+int cmd_init(int argc, char *argv[])
 {
-	const char description[] = "Use: lpass init gpg-key\n";
+	const char description[] = "init gpg-key\n";
 	char *gpg_key = argv[2];
-	if(gpg_key == NULL) printError(description);
+	if(gpg_key == NULL) usageprint("%s", description);
 
 	// create main directory:
 	int len_init_storage = strlen(gPath_rootdir) + strlen(GPGKEY_FILE) + 1; // +1 for '\0'
@@ -98,11 +113,12 @@ void cmd_init(int argc, char *argv[])
 
 	free(path_init_storage);
 	printf("LockPassword initialized for %s\n", gpg_key);
+	return 0;
 }
 
-void cmd_edit(int argc, char *argv[])
+int cmd_edit(int argc, char *argv[])
 {
-	const char description[] = "Use: lpass edit [-t=text-editor] passname\n";
+	const char description[] = "edit [-t=text-editor] passname\n";
 	const struct option long_options[] = {
         {"text-editor", required_argument, NULL, 't'},
         {NULL, 0, NULL, 0}
@@ -121,25 +137,22 @@ void cmd_edit(int argc, char *argv[])
 				printf("You changed text editor to %s\n", optarg);
     			break;
     		}
-    		default: printError(description);
+    		default: usageprint("%s", description);
     	}
     }
 
     if(optind < argc) optind++; // for skip "edit"
-    #if defined(DEBUG)
-    	for(int i=0; i < argc; i++) printf("arg: %s\n", argv[i]);
-    	printf("passname: %s\n", argv[optind]);
-    #endif
+    dbgprint("passname: %s\n", argv[optind]);
     
     char *path_to_password;
-    if(argv[optind] == NULL) printError(description);
+    if(argv[optind] == NULL) usageprint("%s", description);
     else path_to_password = argv[optind];
 
 	checkForbiddenPaths(path_to_password);
 	globalSplitPath(path_to_password);
 
 	if(checkFileExist(gPath_pass) != 1)
-		printError("Error: No such file exists\n");
+		errprint("No such file exists\n");
 
 	// configure text editor file 
 	char text_editor[MAXLEN_TEXTEDITOR];
@@ -156,9 +169,7 @@ void cmd_edit(int argc, char *argv[])
 	}
 	fclose(f_texteditor);
 
-	#if defined(DEBUG)
-		printf("text editor: %s\n", text_editor);
-	#endif
+	dbgprint("text editor: %s\n", text_editor);
 	// end configure
 
 	// decryption
@@ -188,15 +199,16 @@ void cmd_edit(int argc, char *argv[])
 
 	remove(path_to_password);
 	free(public_gpgkey);
+	return 0;
 }
 
-void cmd_move(int argc, char *argv[])
+int cmd_move(int argc, char *argv[])
 {
 	/* we have a two situation:
 	1) mv file file
 	2) mv file directory */
 
-	const char description[] = "Use: lpass mv [-f] old-path new-path\n";
+	const char description[] = "mv [-f] old-path new-path\n";
 	const struct option long_options[] = {
         {"force", no_argument, NULL, 'f'},
         {NULL, 0, NULL, 0}
@@ -206,23 +218,19 @@ void cmd_move(int argc, char *argv[])
     while((result = getopt_long(argc, argv, "f", long_options, NULL)) != -1) {
     	switch(result) {
     		case 'f': { flag_force = 1; break; }
-    		default: printError(description);
+    		default: usageprint("%s", description);
     	}
     }
 
     if(optind < argc) optind++; // for skip "move"
-    #if defined(DEBUG)
-    	for(int i=0; i < argc; i++) printf("arg: %s\n", argv[i]);
-    	printf("old-path: %s\n", argv[optind]);
-    	if(argv[optind] != NULL) printf("new-path: %s\n", argv[optind+1]);
-    #endif
-    
-    if(argv[optind] == NULL) printError(description);
-    if(argv[optind+1] == NULL) printError(description);
+    if(!argv[optind] || !argv[optind+1])
+    	usageprint("%s", description);
+    dbgprint("old-path: %s\n", argv[optind]);
+    dbgprint("new-path: %s\n", argv[optind+1]);
 
 	char *old_path = argv[optind];
 	checkForbiddenPaths(old_path); globalSplitPath(old_path);
-	if(checkFileExist(gPath_pass) != 1) printError("Error: No such old-path exists\n");
+	if(checkFileExist(gPath_pass) != 1) errprint("No such old-path exists\n");
 
 	char *old_path_gpg = gPath_pass;
 	char *old_path_subdir = gPath_subdir;
@@ -235,22 +243,23 @@ void cmd_move(int argc, char *argv[])
 	else if(checkFileExist(gPath_pass) == 1) { // if new-path = file
 		if(!flag_force) {
 			if(getOverwriteAnswer(new_path) != 1)
-				return;
+				return 1;
 		}
 		new_path = gPath_pass;
 	}
-	else printError("Error: No such new-path exists\n");
+	else errprint("No such new-path exists\n");
 
 	char *arguments[] = {"mv", "-f", old_path_gpg, new_path, NULL};
 	easyFork("mv", arguments);
 
 	deleteEmptyDir(old_path_subdir);
 	free(old_path_subdir); free(old_path_gpg);
+	return 0;
 }
 
-void cmd_generate(int argc, char *argv[])
+int cmd_generate(int argc, char *argv[])
 {
-	const char description[] = "Use: lpass generate [-l=pass-length] [-f] passname\n";
+	const char description[] = "generate [-l=pass-length] [-f] passname\n";
 	int pass_length = STANDARD_AMOUNT_GENERATE_SYMBOLS;
 	int flag_force = 0, flag_copy = 0, result;
 	const struct option long_options[] = {
@@ -266,22 +275,19 @@ void cmd_generate(int argc, char *argv[])
     		case 'l': { pass_length = atoi(optarg); break; }
     		case 'f': { flag_force = 1; break; }
     		case 'c': { flag_copy = 1; break; }
-    		default: printError(description);
+    		default: usageprint("%s", description);
     	}
     }
 
     if(optind < argc) optind++; // for skip "generate"
-    #if defined(DEBUG)
-    	for(int i=0; i < argc; i++) printf("arg: %s\n", argv[i]);
-    	printf("passname: %s\n", argv[optind]);
-    #endif
+    dbgprint("passname: %s\n", argv[optind]);
     
     char *path_to_password;
-    if(argv[optind] == NULL) printError(description);
+    if(argv[optind] == NULL) usageprint("%s", description);
     else path_to_password = argv[optind];
 
     if(pass_length < MINLEN_PASSWORD || pass_length > MAXLEN_PASSWORD)
-		printError("Error: you typed an incorrect number\n");
+		errprint("You typed an incorrect number\n");
 
 	checkForbiddenPaths(path_to_password);
 	globalSplitPath(path_to_password);
@@ -289,7 +295,7 @@ void cmd_generate(int argc, char *argv[])
 	if(checkFileExist(gPath_pass) == 1) {
 		if(!flag_force) {
 			if(getOverwriteAnswer(path_to_password) != 1)
-				return;
+				return 1;
 		}
 	}
 
@@ -300,11 +306,12 @@ void cmd_generate(int argc, char *argv[])
 	insertPass(path_to_password, gpass, flag_copy);
 	if(!flag_copy) printf("Generated password: %s\n", gpass);
 	printf("Password added successfully for %s\n", path_to_password);
+	return 0;
 }
 
-void cmd_insert(int argc, char *argv[])
+int cmd_insert(int argc, char *argv[])
 {
-	const char description[] = "Use: lpass insert [-ecf] passname\n";
+	const char description[] = "insert [-ecf] passname\n";
 	int flag_echo = 0, flag_force = 0, flag_copy = 0, result;
 	const struct option long_options[] = {
         {"echo", no_argument, NULL, 'e'},
@@ -318,18 +325,15 @@ void cmd_insert(int argc, char *argv[])
     		case 'e': { flag_echo = 1; break; }
     		case 'f': { flag_force = 1; break; }
     		case 'c': { flag_copy = 1; break; }
-    		default: printError(description);
+    		default: usageprint("%s", description);
     	}
     }
 
     if(optind < argc) optind++; // for skip "insert"
-    #if defined(DEBUG)
-    	for(int i=0; i < argc; i++) printf("arg: %s\n", argv[i]);
-    	printf("passname: %s\n", argv[optind]);
-    #endif
+    dbgprint("passname: %s\n", argv[optind]);
     
     char *path_to_password;
-    if(argv[optind] == NULL) printError(description);
+    if(argv[optind] == NULL) usageprint("%s", description);
     else path_to_password = argv[optind];
 
 	checkForbiddenPaths(path_to_password);
@@ -338,7 +342,7 @@ void cmd_insert(int argc, char *argv[])
 	if(checkFileExist(gPath_pass) == 1) {
 		if(!flag_force) {
 			if(getOverwriteAnswer(path_to_password) != 1)
-				return;
+				return 1;
 		}
 	}
 			
@@ -347,28 +351,30 @@ void cmd_insert(int argc, char *argv[])
 	}
 	else
 		printf("Passwords do not match\n");
+	return 0;
 }
 
-void cmd_remove(int argc, char *argv[])
+int cmd_remove(int argc, char *argv[])
 {
-	const char description[] = "Use: lpass rm passname\n";
+	const char description[] = "rm passname\n";
 	char *path_to_password = argv[2];
 	if(path_to_password == NULL)
-		printError(description);
+		usageprint("%s", description);
 
 	checkForbiddenPaths(path_to_password);
 	globalSplitPath(path_to_password);
 
 	if(checkFileExist(gPath_pass) != 1)
-		printError("Error: No such file exists\n");
+		errprint("No such file exists\n");
 
 	if(deleteFile(gPath_pass))
 		deleteEmptyDir(gPath_subdir);
+	return 0;
 }
 
-void cmd_showtree(int argc, char *argv[])
+int cmd_showtree(int argc, char *argv[])
 {
-	const char description[] = "Use: lpass [-c] [passname]\n";
+	const char description[] = "[-c] [passname]\n";
 	int flag_copy = 0, result;
 	char *path;
 	const struct option long_options[] = {
@@ -379,17 +385,13 @@ void cmd_showtree(int argc, char *argv[])
     while((result = getopt_long(argc, argv, "c", long_options, NULL)) != -1) {
     	switch(result) {
     		case 'c': { flag_copy = 1; break; }
-    		default: printError(description);
+    		default: usageprint("%s", description);
     	}
     }
 
-    #if defined(DEBUG)
-    	for(int i=0; i < argc; i++) printf("arg: %s\n", argv[i]);
-    	printf("passname: %s\n", argv[optind]);
-    #endif
-
-    if(argv[optind] == NULL) {
-    	if(flag_copy) printError(description);
+    if(!argv[optind]) {
+    	if(flag_copy)
+    		usageprint("%s", description);
     	else {
     		path = (char *) malloc(sizeof(char) * 2);
     		strcpy(path, ".");
@@ -398,9 +400,10 @@ void cmd_showtree(int argc, char *argv[])
     else path = argv[optind];
     checkForbiddenPaths(path);
 
-	if(opendir(path) != NULL) // if it's directory
+	if(opendir(path)) // if it's directory
 	{
-		if(flag_copy) printError("Error: you must type a passname, not a directory\n");
+		if(flag_copy)
+			errprint("You must type a passname, not a directory\n");
 
 		char *arg1[] = {"tree", "-C", "--noreport", path, "-o", TREE_OUTPUT_FILE, NULL};
 		easyFork("tree", arg1);
@@ -426,13 +429,14 @@ void cmd_showtree(int argc, char *argv[])
 			getPassword(path, password, sizeof(char)*MAXLEN_PASSWORD, flag_copy);
 			if(!flag_copy) printf("%s\n", password);
 		}
-		else printf("Error: %s is not in the password storage\n", path);
+		else errprint("%s is not in the password storage\n", path);
 	}
 
 	if(argv[1] == NULL) free(path);
+	return 0;
 }
 
-void cmd_help(int argc, char *argv[])
+int cmd_help(int argc, char *argv[])
 {
 	printf("Synopsis:\n"
 		"\tlpass [command] [arguments] ...\n"
@@ -456,18 +460,20 @@ void cmd_help(int argc, char *argv[])
 		"\t\tPrint version information.\n"
 
 		"\nMore information may be found in the lpass(1) man page.\n");
+	return 0;
 }
 
-void cmd_version(int argc, char *argv[])
+int cmd_version(int argc, char *argv[])
 {
 	printf("LockPassword v%s\n"
 		"Release date: %s\n\n"
 		"Code was written by Joursoir\n"
 		"This is free and unencumbered software released into the public domain.\n\n",
 		VERSION, DATE_RELEASE);
+	return 0;
 }
 
-struct cmd_struct *get_cmd(const char *name)
+static struct cmd_struct *get_cmd(const char *name)
 {
 	struct cmd_struct *ptr;
 	for(ptr = commands; ptr->cmd; ptr++) {
@@ -480,7 +486,7 @@ struct cmd_struct *get_cmd(const char *name)
 int main(int argc, char *argv[])
 {
 	if(!isatty(STDIN_FILENO))
-		printError("lpass: Please, use a terminal to run this application\n");
+		errprint("Please, use a terminal to run this application\n");
 
 	/* init global path to root directory */
 	int len_rootdir = strlen(getenv("HOME")) + strlen(LOCKPASS_DIR) + 1; // +1 for '\0'
@@ -495,14 +501,15 @@ int main(int argc, char *argv[])
 
 	int dir = chdir(gPath_rootdir);
 
+	int ret = 0;
 	if((ptr = get_cmd(cmd)))
-		ptr->func(argc, argv);
+		ret = ptr->func(argc, argv);
 	else {
 		if(dir != 0) {
-			printf("Before starting work, you must initialize LockPassword\n");
+			errprint("Before starting work, you must initialize LockPassword\n");
 			return 1;
 		}
-		cmd_showtree(argc, argv);
+		ret = cmd_showtree(argc, argv);
 	}
 
 	if(gPath_subdir != NULL) {
@@ -511,5 +518,5 @@ int main(int argc, char *argv[])
 	}
 	free(gPath_rootdir);
 	
-	return 0;
+	return ret;
 }
