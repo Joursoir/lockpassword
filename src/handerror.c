@@ -9,7 +9,7 @@ void callError(int num)
 	exit(3);
 }
 
-void printError(char *text)
+void printError(const char *text)
 {
 	fprintf(stderr, "%s", text);
 	exit(4);

@@ -3,6 +3,6 @@
 
 void easyFork(char *name, char *arguments[]);
 void callError(int num);
-void printError(char *text);
+void printError(const char *text);
 
 #endif

@@ -216,17 +216,6 @@ char *generatePassword(char *dest, int amount)
 	return dest;
 }
 
-unsigned long hash(char *str)
-{
-    unsigned long hash = 5381;
-    char c;
-
-    while( (c = *str++) )
-        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
-
-    return hash;
-}
-
 static void clearStdinBuff()
 {
 	char garbage;
