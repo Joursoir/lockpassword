@@ -14,15 +14,13 @@
 // GPG_PUBLICKEY_MAXLENGTH NNNN
 
 // == global var == 
-extern char *gPath_rootdir; // /home/[username]/.lockpassword/
 extern char *gPath_subdir; // example: programming/github.com
 extern char *gPath_pass; // example: programming/github.com/joursoir.gpg
 
 static void copyText(char *password)
 {
-	size_t size = (strlen(gPath_rootdir) + 5 + 1) * sizeof(char);
-	char *simple_path = malloc(size);
-	snprintf(simple_path, size, "%s%s", gPath_rootdir, ".pass");
+	char *simple_path = malloc(sizeof(char) * (5 + 1));
+	strcpy(simple_path, ".pass");
 
 	if(getenv("DISPLAY") != NULL)
 	{
@@ -67,7 +65,7 @@ char *getGPGKey(char *dest, size_t size)
 {
 	FILE *fileGPG = fopen(".gpg-key", "r");
 	if(fileGPG == NULL) {
-		if(errno == ENOENT) printError("error: No GPG key exists\n");
+		if(errno == ENOENT) printError("error: No GPG key exists. Use \"lpass init\".");
 		callError(121);
 	}
 
@@ -107,19 +105,16 @@ void nonvisibleEnter(int status)
 {
 	struct termios term_settings;
 	tcgetattr(0, &term_settings); // get current settings
-	if(status == 1) {
+	if(status == 1)
 		term_settings.c_lflag &= ~ECHO; // flag reset
-	}
-	else {
+	else
 		term_settings.c_lflag |= ECHO;
-	}
 	tcsetattr(0, TCSANOW, &term_settings);
 }
 
 void insertPass(char *add_path, char *password, int flag_copy)
 {
-	/* gPath_rootdir = /home/[username]/.lock-password/
-	add_path = banks/france/[number]
+	/* add_path = banks/france/[number]
 	gPath_pass = banks/france/[number].gpg
 	gPath_subdir = banks/france */
 
@@ -177,10 +172,10 @@ char *typePass(char *text, char *dest, int minlen, int maxlen)
 
 int userEnterPassword(int minlen, int maxlen, char *path_insert, int flag_echo, int flag_copy)
 {
-	char *pass_one = (char *) malloc(sizeof(char) * maxlen);
+	char *pass_one = malloc(sizeof(char) * maxlen);
 	int rvalue = 0;
 	if(!flag_echo) {
-		char *pass_two = (char *) malloc(sizeof(char) * maxlen);
+		char *pass_two = malloc(sizeof(char) * maxlen);
 
 		nonvisibleEnter(1); // change terminal work
 		typePass("Type your password: ", pass_one, minlen, maxlen);
@@ -227,26 +222,21 @@ static void clearStdinBuff()
 
 int getOverwriteAnswer(char *path)
 {
-	int buffSize = (strlen("Password for '' exists. Overwrite? (Y/N)") + strlen(path) + 1)* sizeof(char);
-	char *text = malloc(buffSize);
-	snprintf(text, buffSize, "Password for '%s' exists. Overwrite? (Y/N)", path);
-	printf("%s ", text);
-
 	int answer;
+	printf("Password for \"%s\" exists. Overwrite? (Y/N)\n", path);
 	while((answer = fgetc(stdin)))
 	{
 		clearStdinBuff();
 		switch(answer)
 		{
 			case 'Y':
-			case 'y': { free(text); return 1; }
+			case 'y': return 1;
 			case 'N':
-			case 'n': { free(text); return 0; }
+			case 'n': return 0;
 			case EOF: printError("Error: Unexpected end of file\n");
-			default: { printf("%s ", text); break; }
+			default: { printf("Overwrite? (Y/N) "); break; }
 		}
 	}
 
-	free(text);
 	return -1;
 }

@@ -13,6 +13,8 @@
 #include <dirent.h>
 #include <libgen.h>
 #include <stdarg.h>
+#include <errno.h>
+#include <sys/stat.h>
 
 #include "easydir.h"
 #include "handerror.h"
@@ -26,8 +28,8 @@
 #define MINLEN_PASSWORD 1
 #define MAXLEN_PASSWORD 128
 #define STANDARD_AMOUNT_GENERATE_SYMBOLS 14
-#define LOCKPASS_DIR "/.lock-password/"
-#define GPGKEY_FILE "/.gpg-key"
+#define LOCKPASS_DIR ".lock-password/"
+#define GPGKEY_FILE ".gpg-key"
 
 #define TREE_OUTPUT_FILE ".tree"
 #define TEXTEDITOR_FILE ".text-editor"
@@ -66,7 +68,6 @@ static struct cmd_struct commands[] = {
 };
 
 // == global var == 
-char *gPath_rootdir = NULL; // /home/[username]/.lockpassword/
 char *gPath_subdir = NULL; // example: programming/github.com
 char *gPath_pass = NULL; // example: programming/github.com/joursoir.gpg
 
@@ -92,26 +93,14 @@ int cmd_init(int argc, char *argv[])
 	char *gpg_key = argv[2];
 	if(gpg_key == NULL) usageprint("%s", description);
 
-	// create main directory:
-	int len_init_storage = strlen(gPath_rootdir) + strlen(GPGKEY_FILE) + 1; // +1 for '\0'
-	char *path_init_storage = (char *) malloc(sizeof(char) * len_init_storage);
-	strcpy(path_init_storage, gPath_rootdir);
-	
-	char *arguments[] = {"mkdir", "-vp", path_init_storage, NULL};
-	easyFork("mkdir", arguments);
-
-	strcat(path_init_storage, GPGKEY_FILE);
-
 	// create .gpg-key in storage
-	FILE *filekey;
-	filekey = fopen(path_init_storage, "w");	
-	if(filekey == NULL) {
-		callError(122);
-	}
+	FILE *filekey = fopen(GPGKEY_FILE, "w");	
+	if(!filekey)
+		errprint("fopen() failed");
+
 	fputs(gpg_key, filekey);
 	fclose(filekey);
 
-	free(path_init_storage);
 	printf("LockPassword initialized for %s\n", gpg_key);
 	return 0;
 }
@@ -120,52 +109,57 @@ int cmd_edit(int argc, char *argv[])
 {
 	const char description[] = "edit [-t=text-editor] passname\n";
 	const struct option long_options[] = {
-        {"text-editor", required_argument, NULL, 't'},
-        {NULL, 0, NULL, 0}
-    };
+		{"text-editor", required_argument, NULL, 't'},
+		{NULL, 0, NULL, 0}
+	};
 
-    int result;
-    while((result = getopt_long(argc, argv, "t:", long_options, NULL)) != -1) {
-    	switch(result) {
-    		case 't':
-    		{
-    			// create file, copy name text editor there
+	int result;
+	while((result = getopt_long(argc, argv, "t:", long_options, NULL)) != -1) {
+		switch(result) {
+			case 't':
+			{
+				// create file, copy name text editor there
 				FILE *f_texteditor = fopen(TEXTEDITOR_FILE, "w");	
-				if(f_texteditor == NULL) callError(108);
+				if(!f_texteditor)
+					errprint("fopen() failed");
 				fputs(optarg, f_texteditor);
 				fclose(f_texteditor);
 				printf("You changed text editor to %s\n", optarg);
-    			break;
-    		}
-    		default: usageprint("%s", description);
-    	}
-    }
+				break;
+			}
+			default: usageprint("%s", description);
+		}
+	}
 
-    if(optind < argc) optind++; // for skip "edit"
-    dbgprint("passname: %s\n", argv[optind]);
-    
-    char *path_to_password;
-    if(argv[optind] == NULL) usageprint("%s", description);
-    else path_to_password = argv[optind];
+	if(optind < argc) optind++; // for skip "edit"
+	dbgprint("passname: %s\n", argv[optind]);
+
+	if(argv[optind] == NULL)
+		usageprint("%s", description);
+	char *path_to_password = argv[optind];
 
 	checkForbiddenPaths(path_to_password);
 	globalSplitPath(path_to_password);
 
-	if(checkFileExist(gPath_pass) != 1)
+	result = checkFileExist(gPath_pass);
+	if(result != F_SUCCESS) {
+		if(result == F_ISDIR) errprint("It is a directory\n");
 		errprint("No such file exists\n");
+	}
 
 	// configure text editor file 
 	char text_editor[MAXLEN_TEXTEDITOR];
 	FILE *f_texteditor = fopen(TEXTEDITOR_FILE, "r");	
 	if(f_texteditor == NULL) {
 		f_texteditor = fopen(TEXTEDITOR_FILE, "w");	
-		if(f_texteditor == NULL) callError(108);
+		if(f_texteditor == NULL)
+			errprint("fopen() failed");
 		fputs(STANDARD_TEXTEDITOR, f_texteditor); // in file
 		strcpy(text_editor, STANDARD_TEXTEDITOR); // in variable
 	}
 	else {
 		if(!fgets(text_editor, sizeof(char)*MAXLEN_TEXTEDITOR, f_texteditor))
-			callError(122);
+			errprint("fgets() failed");
 	}
 	fclose(f_texteditor);
 
@@ -207,40 +201,46 @@ int cmd_move(int argc, char *argv[])
 	/* we have a two situation:
 	1) mv file file
 	2) mv file directory */
-
+	
 	const char description[] = "mv [-f] old-path new-path\n";
 	const struct option long_options[] = {
-        {"force", no_argument, NULL, 'f'},
-        {NULL, 0, NULL, 0}
-    };
+		{"force", no_argument, NULL, 'f'},
+		{NULL, 0, NULL, 0}
+	};
 
-    int result, flag_force = 0;
-    while((result = getopt_long(argc, argv, "f", long_options, NULL)) != -1) {
-    	switch(result) {
-    		case 'f': { flag_force = 1; break; }
-    		default: usageprint("%s", description);
-    	}
-    }
+	int result, flag_force = 0;
+	while((result = getopt_long(argc, argv, "f", long_options, NULL)) != -1) {
+		switch(result) {
+			case 'f': { flag_force = 1; break; }
+			default: usageprint("%s", description);
+		}
+	}
 
-    if(optind < argc) optind++; // for skip "move"
-    if(!argv[optind] || !argv[optind+1])
-    	usageprint("%s", description);
-    dbgprint("old-path: %s\n", argv[optind]);
-    dbgprint("new-path: %s\n", argv[optind+1]);
+	if(optind < argc) optind++; // for skip "move"
+	if(!argv[optind] || !argv[optind+1])
+		usageprint("%s", description);
+	dbgprint("old-path: %s\n", argv[optind]);
+	dbgprint("new-path: %s\n", argv[optind+1]);
 
 	char *old_path = argv[optind];
-	checkForbiddenPaths(old_path); globalSplitPath(old_path);
-	if(checkFileExist(gPath_pass) != 1) errprint("No such old-path exists\n");
+	checkForbiddenPaths(old_path);
+	globalSplitPath(old_path);
+	result = checkFileExist(gPath_pass);
+	if(result != F_SUCCESS) {
+		if(result == F_ISDIR) errprint("It is a directory\n");
+		errprint("No such file exists\n");
+	}
 
 	char *old_path_gpg = gPath_pass;
 	char *old_path_subdir = gPath_subdir;
 
 	char *new_path = argv[optind+1];
-	checkForbiddenPaths(new_path); globalSplitPath(new_path);
+	checkForbiddenPaths(new_path);
+	globalSplitPath(new_path);
 
-	if(checkFileExist(new_path) == 2) // if new-path = dir
+	if(checkFileExist(new_path) == F_ISDIR)
 		;
-	else if(checkFileExist(gPath_pass) == 1) { // if new-path = file
+	else if(checkFileExist(gPath_pass) == F_SUCCESS) {
 		if(!flag_force) {
 			if(getOverwriteAnswer(new_path) != 1)
 				return 1;
@@ -252,8 +252,9 @@ int cmd_move(int argc, char *argv[])
 	char *arguments[] = {"mv", "-f", old_path_gpg, new_path, NULL};
 	easyFork("mv", arguments);
 
-	deleteEmptyDir(old_path_subdir);
-	free(old_path_subdir); free(old_path_gpg);
+	rmdir(old_path_subdir);
+	free(old_path_subdir);
+	free(old_path_gpg);
 	return 0;
 }
 
@@ -263,36 +264,36 @@ int cmd_generate(int argc, char *argv[])
 	int pass_length = STANDARD_AMOUNT_GENERATE_SYMBOLS;
 	int flag_force = 0, flag_copy = 0, result;
 	const struct option long_options[] = {
-        {"length", required_argument, NULL, 'l'},
-        {"force", no_argument, NULL, 'f'},
-        {"copy", no_argument, NULL, 'c'},
-        {NULL, 0, NULL, 0}
-    };
+		{"length", required_argument, NULL, 'l'},
+		{"force", no_argument, NULL, 'f'},
+		{"copy", no_argument, NULL, 'c'},
+		{NULL, 0, NULL, 0}
+	};
 
-    while((result = getopt_long(argc, argv, "l:fc", long_options, NULL)) != -1) {
-    	switch(result) {
-    		// if optarg - incorrect number, atoi return 0
-    		case 'l': { pass_length = atoi(optarg); break; }
-    		case 'f': { flag_force = 1; break; }
-    		case 'c': { flag_copy = 1; break; }
-    		default: usageprint("%s", description);
-    	}
-    }
+	while((result = getopt_long(argc, argv, "l:fc", long_options, NULL)) != -1) {
+		switch(result) {
+			// if optarg - incorrect number, atoi return 0
+			case 'l': { pass_length = atoi(optarg); break; }
+			case 'f': { flag_force = 1; break; }
+			case 'c': { flag_copy = 1; break; }
+			default: usageprint("%s", description);
+		}
+	}
 
-    if(optind < argc) optind++; // for skip "generate"
-    dbgprint("passname: %s\n", argv[optind]);
-    
-    char *path_to_password;
-    if(argv[optind] == NULL) usageprint("%s", description);
-    else path_to_password = argv[optind];
+	if(optind < argc) optind++; // for skip "generate"
+	dbgprint("passname: %s\n", argv[optind]);
 
-    if(pass_length < MINLEN_PASSWORD || pass_length > MAXLEN_PASSWORD)
+	if(argv[optind] == NULL)
+		usageprint("%s", description);
+	char *path_to_password = argv[optind];
+
+	if(pass_length < MINLEN_PASSWORD || pass_length > MAXLEN_PASSWORD)
 		errprint("You typed an incorrect number\n");
 
 	checkForbiddenPaths(path_to_password);
 	globalSplitPath(path_to_password);
 
-	if(checkFileExist(gPath_pass) == 1) {
+	if(checkFileExist(gPath_pass) == F_SUCCESS) {
 		if(!flag_force) {
 			if(getOverwriteAnswer(path_to_password) != 1)
 				return 1;
@@ -314,39 +315,40 @@ int cmd_insert(int argc, char *argv[])
 	const char description[] = "insert [-ecf] passname\n";
 	int flag_echo = 0, flag_force = 0, flag_copy = 0, result;
 	const struct option long_options[] = {
-        {"echo", no_argument, NULL, 'e'},
-        {"force", no_argument, NULL, 'f'},
-        {"copy", no_argument, NULL, 'c'},
-        {NULL, 0, NULL, 0}
-    };
+		{"echo", no_argument, NULL, 'e'},
+		{"force", no_argument, NULL, 'f'},
+		{"copy", no_argument, NULL, 'c'},
+		{NULL, 0, NULL, 0}
+	};
 
-    while((result = getopt_long(argc, argv, "efc", long_options, NULL)) != -1) {
-    	switch(result) {
-    		case 'e': { flag_echo = 1; break; }
-    		case 'f': { flag_force = 1; break; }
-    		case 'c': { flag_copy = 1; break; }
-    		default: usageprint("%s", description);
-    	}
-    }
+	while((result = getopt_long(argc, argv, "efc", long_options, NULL)) != -1) {
+		switch(result) {
+			case 'e': { flag_echo = 1; break; }
+			case 'f': { flag_force = 1; break; }
+			case 'c': { flag_copy = 1; break; }
+			default: usageprint("%s", description);
+		}
+	}
 
-    if(optind < argc) optind++; // for skip "insert"
-    dbgprint("passname: %s\n", argv[optind]);
-    
-    char *path_to_password;
-    if(argv[optind] == NULL) usageprint("%s", description);
-    else path_to_password = argv[optind];
+	if(optind < argc) optind++; // for skip "insert"
+	dbgprint("passname: %s\n", argv[optind]);
+
+	if(argv[optind] == NULL)
+		usageprint("%s", description);
+	char *path_to_password = argv[optind];
 
 	checkForbiddenPaths(path_to_password);
 	globalSplitPath(path_to_password);
 
-	if(checkFileExist(gPath_pass) == 1) {
+	if(checkFileExist(gPath_pass) == F_SUCCESS) {
 		if(!flag_force) {
 			if(getOverwriteAnswer(path_to_password) != 1)
 				return 1;
 		}
 	}
 			
-	if(userEnterPassword(MINLEN_PASSWORD, MAXLEN_PASSWORD, path_to_password, flag_echo, flag_copy) == 1) {
+	if(userEnterPassword(MINLEN_PASSWORD, MAXLEN_PASSWORD,
+			path_to_password, flag_echo, flag_copy) == 1) {
 		printf("Password added successfully for %s\n", path_to_password);
 	}
 	else
@@ -357,18 +359,22 @@ int cmd_insert(int argc, char *argv[])
 int cmd_remove(int argc, char *argv[])
 {
 	const char description[] = "rm passname\n";
-	char *path_to_password = argv[2];
-	if(path_to_password == NULL)
+	int res;
+	char *path = argv[2];
+	if(!path)
 		usageprint("%s", description);
 
-	checkForbiddenPaths(path_to_password);
-	globalSplitPath(path_to_password);
+	checkForbiddenPaths(path);
+	globalSplitPath(path);
 
-	if(checkFileExist(gPath_pass) != 1)
+	res = checkFileExist(gPath_pass);
+	if(res != F_SUCCESS) {
+		if(res == F_ISDIR) errprint("It is a directory\n");
 		errprint("No such file exists\n");
+	}
 
-	if(deleteFile(gPath_pass))
-		deleteEmptyDir(gPath_subdir);
+	if(unlink(gPath_pass) == 0)
+		rmdir(gPath_subdir);
 	return 0;
 }
 
@@ -378,27 +384,26 @@ int cmd_showtree(int argc, char *argv[])
 	int flag_copy = 0, result;
 	char *path;
 	const struct option long_options[] = {
-        {"copy", no_argument, NULL, 'c'},
-        {NULL, 0, NULL, 0}
-    };
+		{"copy", no_argument, NULL, 'c'},
+		{NULL, 0, NULL, 0}
+	};
 
-    while((result = getopt_long(argc, argv, "c", long_options, NULL)) != -1) {
-    	switch(result) {
-    		case 'c': { flag_copy = 1; break; }
-    		default: usageprint("%s", description);
-    	}
-    }
+	while((result = getopt_long(argc, argv, "c", long_options, NULL)) != -1) {
+		switch(result) {
+			case 'c': { flag_copy = 1; break; }
+			default: usageprint("%s", description);
+		}
+	}
 
-    if(!argv[optind]) {
-    	if(flag_copy)
-    		usageprint("%s", description);
-    	else {
-    		path = (char *) malloc(sizeof(char) * 2);
-    		strcpy(path, ".");
-    	}
-    }
-    else path = argv[optind];
-    checkForbiddenPaths(path);
+	if(argv[optind]) {
+		path = malloc(sizeof(char) * (strlen(argv[optind]) + 1));
+		strcpy(path, argv[optind]);
+		checkForbiddenPaths(path);
+	}
+	else {
+		path = malloc(sizeof(char) * 2);
+		strcpy(path, ".");
+	}
 
 	if(opendir(path)) // if it's directory
 	{
@@ -415,7 +420,7 @@ int cmd_showtree(int argc, char *argv[])
 		else printf("Password Manager/%s\n", path);
 
 		char *arg3[] = {"tail", "-n", "+2", TREE_OUTPUT_FILE, NULL};
-		easyFork("tail", arg3); // remove working directory
+		easyFork("tail", arg3); // remove working directory from output
 
 		remove(TREE_OUTPUT_FILE);
 	}
@@ -423,7 +428,7 @@ int cmd_showtree(int argc, char *argv[])
 	{
 		globalSplitPath(path);
 
-		if(checkFileExist(gPath_pass) == 1) // exist
+		if(checkFileExist(gPath_pass) == F_SUCCESS)
 		{
 			char password[MAXLEN_PASSWORD];
 			getPassword(path, password, sizeof(char)*MAXLEN_PASSWORD, flag_copy);
@@ -432,7 +437,7 @@ int cmd_showtree(int argc, char *argv[])
 		else errprint("%s is not in the password storage\n", path);
 	}
 
-	if(argv[1] == NULL) free(path);
+	free(path);
 	return 0;
 }
 
@@ -483,40 +488,48 @@ static struct cmd_struct *get_cmd(const char *name)
 	return NULL;
 }
 
+static int gotoMainDir()
+{
+	char *env_home = getenv("HOME");
+	int len_rootdir = strlen(env_home) + 1 + strlen(LOCKPASS_DIR) + 1;
+	char *rootdir = malloc(sizeof(char) * len_rootdir);
+	sprintf(rootdir, "%s/%s", env_home, LOCKPASS_DIR);
+
+	if(chdir(rootdir)) // failed
+	{
+		// create main directory:
+		if(mkdir(rootdir, S_IRWXU)) {
+			if(errno != EEXIST)
+				errprint("mkdir() failed\n");
+		}
+
+		// try again:
+		return chdir(rootdir);
+	}
+
+	return 0;
+}
+
 int main(int argc, char *argv[])
 {
 	if(!isatty(STDIN_FILENO))
 		errprint("Please, use a terminal to run this application\n");
 
-	/* init global path to root directory */
-	int len_rootdir = strlen(getenv("HOME")) + strlen(LOCKPASS_DIR) + 1; // +1 for '\0'
-
-	gPath_rootdir = (char *) malloc(sizeof(char) * len_rootdir);
-	strcpy(gPath_rootdir, getenv("HOME"));
-	strcat(gPath_rootdir, LOCKPASS_DIR);
-	/* end init */
-
-	char *cmd = (argv[1] != NULL) ? argv[1] : "";
-	struct cmd_struct *ptr;
-
-	int dir = chdir(gPath_rootdir);
+	if(gotoMainDir())
+		errprint("chdir() failed\n");
 
 	int ret = 0;
+	char *cmd = (argv[1] != NULL) ? argv[1] : "";
+	struct cmd_struct *ptr;
 	if((ptr = get_cmd(cmd)))
 		ret = ptr->func(argc, argv);
-	else {
-		if(dir != 0) {
-			errprint("Before starting work, you must initialize LockPassword\n");
-			return 1;
-		}
+	else
 		ret = cmd_showtree(argc, argv);
-	}
 
 	if(gPath_subdir != NULL) {
 		free(gPath_subdir);
 		free(gPath_pass);
 	}
-	free(gPath_rootdir);
 	
 	return ret;
 }
