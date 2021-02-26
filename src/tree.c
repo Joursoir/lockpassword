@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 
 #include "tree.h"
+#include "xstd.h"
 
 #define ANSIC_RST  "\x1B[0m"
 #define ANSIC_BBLU  "\x1B[34;1m"
@@ -59,20 +60,6 @@ static int count_dir_entries(const char *path)
 	}
 	closedir(dir);
 	return counter;
-}
-
-static char *xstrcat(const char *first, const char *second,
-	const char *delimiter)
-{
-	size_t size = sizeof(char) * (strlen(first) + strlen(second) + 1);
-	if(delimiter)
-		size += sizeof(char) * strlen(delimiter);
-	char *res = malloc(size);
-	strcpy(res, first);
-	if(delimiter)
-		strcat(res, delimiter);
-	strcat(res, second);
-	return res;
 }
 
 int tree(const char *path, const char *prefix)

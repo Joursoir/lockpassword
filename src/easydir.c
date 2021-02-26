@@ -6,7 +6,7 @@
 #include <errno.h>
 
 #include "easydir.h"
-#include "handerror.h"
+#include "xstd.h"
 
 int checkFileExist(char *source)
 {

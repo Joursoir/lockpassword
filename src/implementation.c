@@ -8,7 +8,7 @@
 #include <errno.h>
 #include <sys/stat.h>
 
-#include "handerror.h"
+#include "xstd.h"
 #include "easydir.h"
 #include "implementation.h"
 

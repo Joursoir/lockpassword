@@ -17,7 +17,7 @@
 #include <sys/stat.h>
 
 #include "easydir.h"
-#include "handerror.h"
+#include "xstd.h"
 #include "implementation.h"
 #include "exec-cmd.h"
 #include "tree.h"
@@ -531,25 +531,25 @@ static struct cmd_struct *get_cmd(const char *name)
 	return NULL;
 }
 
-static int gotoMainDir()
+static int goto_maindir()
 {
-	char *env_home = getenv("HOME");
-	int len_rootdir = strlen(env_home) + 1 + strlen(LOCKPASS_DIR) + 1;
-	char *rootdir = malloc(sizeof(char) * len_rootdir);
-	sprintf(rootdir, "%s/%s", env_home, LOCKPASS_DIR);
-
+	int ret = 0;
+	char *rootdir = xstrcat(getenv("HOME"), LOCKPASS_DIR, "/");
 	if(chdir(rootdir)) // failed
 	{
 		// create main directory:
-		if(mkdir(rootdir, S_IRWXU)) {
-			if(errno != EEXIST)
-				errprint("mkdir() failed\n");
+		int res = mkdir(rootdir, S_IRWXU);
+		if(res) {
+			if(errno != EEXIST) {
+				perror("mkdir");
+				ret = 1;
+			}
 		}
-
-		// try again:
-		return chdir(rootdir);
+		else // try again:
+			ret = chdir(rootdir);
 	}
 
+	free(rootdir);
 	return 0;
 }
 
@@ -558,8 +558,8 @@ int main(int argc, char *argv[])
 	if(!isatty(STDIN_FILENO))
 		errprint("Please, use a terminal to run this application\n");
 
-	if(gotoMainDir())
-		errprint("chdir() failed\n");
+	if(goto_maindir())
+		perror("chdir");
 
 	int ret = 0;
 	char *cmd = (argv[1] != NULL) ? argv[1] : "";
