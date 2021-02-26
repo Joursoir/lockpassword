@@ -4,17 +4,37 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <errno.h>
+#include <dirent.h>
 
 #include "easydir.h"
 #include "xstd.h"
 
-int checkFileExist(char *source)
+int file_exist(const char *path)
 {
-	FILE *file = fopen(source, "r+"); // r+ so that errno can equal EISDIR
+	FILE *file = fopen(path, "r+"); // r+ so that errno can equal EISDIR
 	if(!file)
 		return errno == EISDIR ? F_ISDIR : F_NOEXIST;
 	fclose(file);
-	return F_NOEXIST;
+	return F_ISFILE;
+}
+
+int count_dir_entries(const char *path)
+{
+	int counter = 0;
+	DIR *dir;
+	struct dirent *dir_entry;
+
+	dir = opendir(path);
+	if(dir == NULL)
+		return 0;
+
+	while((dir_entry = readdir(dir))) {
+		if(dir_entry->d_name[0] == '.')
+			continue;
+		counter++;
+	}
+	closedir(dir);
+	return counter;
 }
 
 char *fileCropLineFeed(char *path, char *text, int maxlen)

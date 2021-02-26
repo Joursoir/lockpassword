@@ -8,7 +8,7 @@ enum asnwers {
 	OW_NO = 1,
 };
 
-int checkForbiddenPaths(char *path);
+int check_sneaky_paths(const char *path);
 char *getGPGKey();
 char* getPassword(char *path_pass, char *password, size_t size, int flag_copy);
 void nonvisibleEnter(int status);

@@ -137,11 +137,11 @@ int cmd_insert(int argc, char *argv[])
 	if(path == NULL)
 		usageprint("%s", description);
 
-	result = checkForbiddenPaths(path);
+	result = check_sneaky_paths(path);
 	if(result)
 		errprint("You have used forbidden paths\n");
 
-	if(checkFileExist(path) == F_SUCCESS) {
+	if(file_exist(path) == F_ISFILE) {
 		if(!flag_force) {
 			if(getOverwriteAnswer(path) != OW_YES)
 				return 1;
@@ -224,13 +224,13 @@ int cmd_edit(int argc, char *argv[])
 		usageprint("%s", description);
 	dbgprint("passname: %s\n", argv[optind]);
 
-	result = checkForbiddenPaths(path_to_password);
+	result = check_sneaky_paths(path_to_password);
 	if(result)
 		errprint("You have used forbidden paths\n");
 	globalSplitPath(path_to_password);
 
-	result = checkFileExist(gPath_pass);
-	if(result != F_SUCCESS) {
+	result = file_exist(gPath_pass);
+	if(result != F_ISFILE) {
 		if(result == F_ISDIR) errprint("It is a directory\n");
 		errprint("No such file exists\n");
 	}
@@ -314,12 +314,12 @@ int cmd_generate(int argc, char *argv[])
 	if(pass_length < minlen_pass || pass_length > maxlen_pass)
 		errprint("You typed an incorrect number\n");
 
-	result = checkForbiddenPaths(path_to_password);
+	result = check_sneaky_paths(path_to_password);
 	if(result)
 		errprint("You have used forbidden paths\n");
 	globalSplitPath(path_to_password);
 
-	if(checkFileExist(gPath_pass) == F_SUCCESS) {
+	if(file_exist(gPath_pass) == F_ISFILE) {
 		if(!flag_force) {
 			if(getOverwriteAnswer(path_to_password) != OW_YES)
 				return 1;
@@ -347,19 +347,19 @@ int cmd_remove(int argc, char *argv[])
 	if(!path)
 		usageprint("%s", description);
 
-	result = checkForbiddenPaths(path);
+	result = check_sneaky_paths(path);
 	if(result)
 		errprint("You have used forbidden paths\n");
-	globalSplitPath(path);
 
-	result = checkFileExist(gPath_pass);
-	if(result != F_SUCCESS) {
-		if(result == F_ISDIR) errprint("It is a directory\n");
+	result = file_exist(path);
+	if(result == F_NOEXIST)
 		errprint("No such file exists\n");
+	if(result == F_ISDIR) {
+		if(count_dir_entries(path) != 0)
+			errprint("Directory not empty\n");
 	}
 
-	if(unlink(gPath_pass) == 0)
-		rmdir(gPath_subdir);
+	remove(path);
 	return 0;
 }
 
@@ -386,46 +386,32 @@ int cmd_move(int argc, char *argv[])
 	if(optind < argc) optind++; // for skip "move"
 	if(!argv[optind] || !argv[optind+1])
 		usageprint("%s", description);
-	dbgprint("old-path: %s\n", argv[optind]);
-	dbgprint("new-path: %s\n", argv[optind+1]);
 
 	char *old_path = argv[optind];
-	result = checkForbiddenPaths(old_path);
-	if(result)
-		errprint("You have used forbidden paths\n");
-	globalSplitPath(old_path);
-	result = checkFileExist(gPath_pass);
-	if(result != F_SUCCESS) {
-		if(result == F_ISDIR) errprint("It is a directory\n");
-		errprint("No such file exists\n");
-	}
-
-	char *old_path_gpg = gPath_pass;
-	char *old_path_subdir = gPath_subdir;
-
 	char *new_path = argv[optind+1];
-	result = checkForbiddenPaths(new_path);
+	dbgprint("old-path = %s\n", old_path);
+	dbgprint("new-path = %s\n", new_path);
+
+	result = check_sneaky_paths(old_path);
 	if(result)
 		errprint("You have used forbidden paths\n");
-	globalSplitPath(new_path);
+	result = file_exist(old_path);
+	if(result == F_NOEXIST)
+		errprint("No such file exists\n");
 
-	if(checkFileExist(new_path) == F_ISDIR)
-		;
-	else if(checkFileExist(gPath_pass) == F_SUCCESS) {
+	result = check_sneaky_paths(new_path);
+	if(result)
+		errprint("You have used forbidden paths\n");
+	result = file_exist(new_path);
+	if(result != F_NOEXIST) {
 		if(!flag_force) {
 			if(getOverwriteAnswer(new_path) != OW_YES)
 				return 1;
 		}
-		new_path = gPath_pass;
 	}
-	else errprint("No such new-path exists\n");
 
-	char *arguments[] = {"mv", "-f", old_path_gpg, new_path, NULL};
-	easyFork("mv", arguments);
-
-	rmdir(old_path_subdir);
-	free(old_path_subdir);
-	free(old_path_gpg);
+	if(rename(old_path, new_path))
+		perror("rename");
 	return 0;
 }
 
@@ -484,7 +470,7 @@ int cmd_showtree(int argc, char *argv[])
 	}
 
 	if(argv[optind]) {
-		result = checkForbiddenPaths(argv[optind]);
+		result = check_sneaky_paths(argv[optind]);
 		if(result)
 			errprint("You have used forbidden paths\n");
 		path = malloc(sizeof(char) * (strlen(argv[optind]) + 1));
@@ -508,11 +494,12 @@ int cmd_showtree(int argc, char *argv[])
 	{
 		globalSplitPath(path);
 
-		if(checkFileExist(gPath_pass) == F_SUCCESS)
+		if(file_exist(gPath_pass) == F_ISFILE)
 		{
 			char password[maxlen_pass];
 			getPassword(path, password, sizeof(char)*maxlen_pass, flag_copy);
-			if(!flag_copy) printf("%s\n", password);
+			if(!flag_copy)
+				printf("%s\n", password);
 		}
 		else errprint("%s is not in the password storage\n", path);
 	}
@@ -550,7 +537,7 @@ static int goto_maindir()
 	}
 
 	free(rootdir);
-	return 0;
+	return ret;
 }
 
 int main(int argc, char *argv[])

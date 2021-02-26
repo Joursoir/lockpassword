@@ -53,18 +53,13 @@ static void copyText(char *password)
 }
 
 /* check two dot in path */
-int checkForbiddenPaths(char *path)
+int check_sneaky_paths(const char *path)
 {
-	int i, length;
-	int firstdot = 0;
-	for(i = 0, length = strlen(path); i < length; i++)
+	int length = strlen(path), i;
+	for(i = 1; i < length; i++)
 	{
-		if(path[i] == '.') {
-			if(firstdot)
-				return 1;
-			firstdot++;
-		}
-		else firstdot = 0;
+		if(path[i-1] == '.' && path[i] == '.')
+			return 1;
 	}
 	return 0;
 }

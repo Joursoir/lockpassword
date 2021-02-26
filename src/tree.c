@@ -7,6 +7,7 @@
 
 #include "tree.h"
 #include "xstd.h"
+#include "easydir.h"
 
 #define ANSIC_RST  "\x1B[0m"
 #define ANSIC_BBLU  "\x1B[34;1m"
@@ -26,40 +27,6 @@ static void entries_sort(char **entries, const int size)
 			}
 		}
 	}
-}
-
-static int is_dir(const char *path)
-{
-	struct stat buffer;
-	if(stat(path, &buffer))
-		return 0;
-	return S_ISDIR(buffer.st_mode);
-}
-
-static int count_dir_entries(const char *path)
-{
-	int counter = 0;
-	DIR *dir;
-	struct dirent *dir_entry;
-
-	dir = opendir(path);
-	if(dir == NULL) {
-		fprintf(stderr, "opendir() failed\n");
-		return -1;
-	}
-
-	errno = 0;
-	while((dir_entry = readdir(dir))) {
-		if(dir_entry->d_name[0] == '.')
-			continue;
-		counter++;
-	}
-	if(errno) {
-		fprintf(stderr, "readdir() failed\n");
-		return -1;
-	}
-	closedir(dir);
-	return counter;
 }
 
 int tree(const char *path, const char *prefix)
@@ -91,10 +58,6 @@ int tree(const char *path, const char *prefix)
 		i++;
 	}
 	closedir(main_dir);
-	if(errno) {
-		perror("opendir");
-		return 1;
-	}
 
 	entries_sort(entries, cnt_ent);
 	for(i = 0; i < cnt_ent; i++) {
@@ -109,7 +72,7 @@ int tree(const char *path, const char *prefix)
 		}
 
 		full_path = xstrcat(path, entries[i], "/");
-		if(is_dir(full_path)) {
+		if(file_exist(full_path) == F_ISDIR) {
 			printf("%s%s%s%s%s\n", prefix, pointer, ANSIC_BBLU,
 				entries[i], ANSIC_RST);
 
