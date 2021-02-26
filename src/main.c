@@ -20,6 +20,7 @@
 #include "handerror.h"
 #include "implementation.h"
 #include "exec-cmd.h"
+#include "tree.h"
 
 enum constants {
 	maxlen_texteditor = 16,
@@ -35,7 +36,6 @@ enum constants {
 #define LOCKPASS_DIR ".lock-password/"
 #define GPGKEY_FILE ".gpg-key"
 
-#define TREE_OUTPUT_FILE ".tree"
 #define TEXTEDITOR_FILE ".text-editor"
 
 #define usageprint(...) \
@@ -500,19 +500,9 @@ int cmd_showtree(int argc, char *argv[])
 		if(flag_copy)
 			errprint("You must type a passname, not a directory\n");
 
-		char *arg1[] = {"tree", "-C", "--noreport", path, "-o", TREE_OUTPUT_FILE, NULL};
-		easyFork("tree", arg1);
-
-		char *arg2[] = {"sed", "-i", "-E", "s/\\.gpg(\\x1B\\[[0-9]+m)?( ->|$)/\\1\\2/g", TREE_OUTPUT_FILE, NULL};
-		easyFork("sed", arg2); // remove .gpg at the pass name
-
 		if(strcmp(path, ".") == 0) printf("Password Manager\n");
 		else printf("Password Manager/%s\n", path);
-
-		char *arg3[] = {"tail", "-n", "+2", TREE_OUTPUT_FILE, NULL};
-		easyFork("tail", arg3); // remove working directory from output
-
-		remove(TREE_OUTPUT_FILE);
+		tree(path, "");
 	}
 	else
 	{
