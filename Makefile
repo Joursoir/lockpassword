@@ -1,6 +1,6 @@
 PREFIX = /usr/local/bin
 CC = gcc
-CFLAGS = -Wall -g # -DDEBUG
+CFLAGS = -Wall -g $(shell gpgme-config --cflags --libs) # -DDEBUG
 MAN_PATH = /usr/share/man/man1
 SOURCES = src/*.c
 OBJECTS = *.o

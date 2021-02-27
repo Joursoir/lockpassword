@@ -11,15 +11,15 @@
 #include "xstd.h"
 #include "easydir.h"
 #include "implementation.h"
+#include "r-gpgme.h"
 
 /* define in implementation.h */
 // GPG_PUBLICKEY_MAXLENGTH NNNN
 
 // == global var == 
-extern char *gPath_subdir; // example: programming/github.com
 extern char *gPath_pass; // example: programming/github.com/joursoir.gpg
 
-static void copyText(char *password)
+void copy_outside(char *password)
 {
 	char *simple_path = malloc(sizeof(char) * (5 + 1));
 	strcpy(simple_path, ".pass");
@@ -64,56 +64,42 @@ int check_sneaky_paths(const char *path)
 	return 0;
 }
 
-char *getGPGKey()
+char *get_pubkey()
 {
-	int size_gpgkey = sizeof(char) * GPG_PUBLICKEY_MAXLENGTH;
-	char *pub_gpgkey = malloc(size_gpgkey + sizeof(char));
+	int size_key = sizeof(char) * GPG_PUBLICKEY_MAXLENGTH;
+	char *pubkey = malloc(size_key + sizeof(char));
 
 	FILE *fileGPG = fopen(".gpg-key", "r");
 	if(fileGPG == NULL) {
+		free(pubkey);
 		if(errno == ENOENT)
-			printError("error: No GPG key exists. Use \"lpass init\".");
-		callError(121);
+			errprint(NULL, "No GPG key exists. Use \"lpass init\".");
+		perror(".gpg-key");
+		return NULL;
 	}
 
-	if(!fgets(pub_gpgkey, size_gpgkey, fileGPG)) {
-		callError(122);
+	if(!fgets(pubkey, size_key, fileGPG)) {
+		free(pubkey);
+		pubkey = NULL;
 	}
 	fclose(fileGPG);
 
-	return pub_gpgkey;
+	return pubkey;
 }
 
-char* getPassword(char *path_pass, char *password, size_t size, int flag_copy)
+char *get_password(const char *path)
 {
-	char *public_gpgkey = getGPGKey();
-
-	char *arguments[] = {"gpg", "-d", "--quiet", "-r", public_gpgkey, "-o", path_pass, gPath_pass, NULL};
-	easyFork("gpg", arguments);
-
-	FILE *filePass = fopen(path_pass, "r");
-	if(filePass == NULL) callError(127);
-
-	if(!fgets(password, size, filePass)) {
-		callError(111);
-	}
-	fclose(filePass);
-
-	if(flag_copy) copyText(password);
-
-	remove(path_pass);
-	free(public_gpgkey);
-	return password;
+	return decrypt_data(path);
 }
 
-void nonvisibleEnter(int status)
+void visible_enter(int status)
 {
 	struct termios term_settings;
 	tcgetattr(0, &term_settings); // get current settings
 	if(status == 1)
-		term_settings.c_lflag &= ~ECHO; // flag reset
-	else
 		term_settings.c_lflag |= ECHO;
+	else
+		term_settings.c_lflag &= ~ECHO;
 	tcsetattr(0, TCSANOW, &term_settings);
 }
 
@@ -130,9 +116,11 @@ static void mkdir_recursive(const char *path)
 	free(fullpath);
 }
 
-int insertPass(char *path, char *password, int flag_copy)
+int insert_pass(const char *path, const char *password)
 {
-	char *public_gpgkey = getGPGKey();
+	char *public_gpgkey = get_pubkey();
+	if(public_gpgkey == NULL)
+		return 1;
 
 	// create directories
 	char *tmp, *dirs_path;
@@ -142,29 +130,12 @@ int insertPass(char *path, char *password, int flag_copy)
 		mkdir_recursive(dirs_path);
 	free(tmp);
 
-	// create file, copy password there
-	FILE *file_pass;
-	file_pass = fopen(path, "w");	
-	if(file_pass == NULL) {
-		free(public_gpgkey);
-		return 1;
-	}
-	fputs(password, file_pass);
-	fclose(file_pass);
-
-	if(flag_copy)
-		copyText(password);
-
-	// encryption
-	char *encrypt_arg[] = {"gpg", "--quiet", "--yes", "-r", public_gpgkey, "-e", path, NULL};
-	easyFork("gpg", encrypt_arg);
-
-	remove(path);
+	int ret = ecnrypt_data(path, password, public_gpgkey);
 	free(public_gpgkey);
-	return 0;
+	return ret;
 }
 
-char *getInput(int minlen, int maxlen)
+char *get_input(int minlen, int maxlen)
 {
 	size_t size = sizeof(char) * maxlen;
 	char *pass = malloc(size + sizeof(char)); // +1 for '\0'
@@ -187,7 +158,7 @@ char *getInput(int minlen, int maxlen)
 	return pass;
 }
 
-char *generatePassword(char *dest, int amount)
+void gen_password(char *dest, int amount)
 {
 	int i, min = 33, max = 126;
 	char password[amount];
@@ -197,19 +168,16 @@ char *generatePassword(char *dest, int amount)
 		password[i] = min + rand() % (max-min);
 
 	strcpy(dest, password);
-	return dest;
 }
 
 static void clearStdinBuff()
 {
-	char garbage;
-
+	int garbage;
 	while( (garbage = fgetc(stdin)) != '\n' && garbage != EOF )
 		;
 }
 
-
-int getOverwriteAnswer(char *path)
+int overwrite_answer(const char *path)
 {
 	int answer;
 	printf("Password for \"%s\" exists. Overwrite? (Y/N)\n", path);
@@ -219,13 +187,16 @@ int getOverwriteAnswer(char *path)
 		switch(answer)
 		{
 			case 'Y':
-			case 'y': return OW_YES;
+			case 'y': return 'y';
 			case 'N':
-			case 'n': return OW_NO;
-			case EOF: printError("Error: Unexpected end of file\n");
-			default: { printf("Overwrite? (Y/N) "); break; }
+			case 'n':
+			case EOF: return 'n'; 
+			default: {
+				printf("Overwrite? (Y/N) ");
+				break;
+			}
 		}
 	}
 
-	return 2;
+	return 'n';
 }

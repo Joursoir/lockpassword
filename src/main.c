@@ -43,11 +43,6 @@ enum constants {
 		fprintf(stdout, "Usage: lpass " __VA_ARGS__); \
 		return 1; \
 	} while(0)
-#define errprint(...) \
-	do { \
-		fprintf(stderr, "Error: " __VA_ARGS__); \
-		return 1; \
-	} while(0)
 #ifdef DEBUG
 	#define dbgprint(...) fprintf(stderr, "Debug: " __VA_ARGS__)
 #else
@@ -72,7 +67,6 @@ static struct cmd_struct commands[] = {
 };
 
 // == global var == 
-char *gPath_subdir = NULL; // example: programming/github.com
 char *gPath_pass = NULL; // example: programming/github.com/joursoir.gpg
 
 static void globalSplitPath(char *source)
@@ -83,11 +77,6 @@ static void globalSplitPath(char *source)
 	strcpy(gPath_pass, source);
 	strcat(gPath_pass, ".gpg");
 
-	gPath_subdir = malloc(sizeof(char) * len_path); // path without working dir and pass file
-	strcpy(gPath_subdir, source);
-	dirname(gPath_subdir);
-
-	dbgprint("g_suddir: %s\n", gPath_subdir);
 	dbgprint("g_pass: %s\n", gPath_pass);
 }
 
@@ -101,7 +90,7 @@ int cmd_init(int argc, char *argv[])
 	// create .gpg-key in storage
 	FILE *filekey = fopen(GPGKEY_FILE, "w");	
 	if(!filekey)
-		errprint("fopen() failed");
+		errprint(1, "fopen() failed");
 
 	fputs(gpg_key, filekey);
 	fclose(filekey);
@@ -139,11 +128,11 @@ int cmd_insert(int argc, char *argv[])
 
 	result = check_sneaky_paths(path);
 	if(result)
-		errprint("You have used forbidden paths\n");
+		errprint(1, "You have used forbidden paths\n");
 
 	if(file_exist(path) == F_ISFILE) {
 		if(!flag_force) {
-			if(getOverwriteAnswer(path) != OW_YES)
+			if(overwrite_answer(path) != 'y')
 				return 1;
 		}
 	}
@@ -151,44 +140,49 @@ int cmd_insert(int argc, char *argv[])
 	char *f_pass;
 	if(!flag_echo) {
 		char *s_pass;
-		nonvisibleEnter(1); // change terminal work
+		visible_enter(0);
 
 		fputs("Type your password: ", stdout);
-		f_pass = getInput(minlen_pass, maxlen_pass);
+		f_pass = get_input(minlen_pass, maxlen_pass);
 		fputs("\n", stdout);
 		if(f_pass == NULL) {
-			nonvisibleEnter(0);
-			errprint("Incorrect password");
+			visible_enter(1);
+			errprint(1, "Incorrect password");
 		}
 
 		fputs("Type your password again: ", stdout);
-		s_pass = getInput(minlen_pass, maxlen_pass);
+		s_pass = get_input(minlen_pass, maxlen_pass);
 		fputs("\n", stdout);
-		nonvisibleEnter(0);
+		visible_enter(1);
 		if(s_pass == NULL) {
 			free(f_pass);
-			errprint("Incorrect password");
+			errprint(1, "Incorrect password");
 		}
 
 		if(strcmp(f_pass, s_pass) != 0) {
 			free(f_pass);
 			free(s_pass);
-			errprint("Password do not match");
+			errprint(1, "Password do not match");
 		}
 		free(s_pass);
 	}
 	else {
 		fputs("Type your password: ", stdout);
-		f_pass = getInput(minlen_pass, maxlen_pass);
+		f_pass = get_input(minlen_pass, maxlen_pass);
 		if(f_pass == NULL)
-			errprint("Incorrect password");
+			errprint(1, "Incorrect password");
 	}
 
-	result = insertPass(path, f_pass, flag_copy);
-	if(result)
-		errprint("Can't add password to LockPassword");
+	result = insert_pass(path, f_pass);
+	if(result) {
+		free(f_pass);
+		errprint(1, "Can't add password to LockPassword");
+	}
+	if(flag_copy)
+		copy_outside(f_pass);
 
 	printf("Password added successfully for %s\n", path);
+	free(f_pass);
 	return 0;
 }
 
@@ -208,7 +202,7 @@ int cmd_edit(int argc, char *argv[])
 				// create file, copy name text editor there
 				FILE *f_texteditor = fopen(TEXTEDITOR_FILE, "w");	
 				if(!f_texteditor)
-					errprint("fopen() failed");
+					errprint(1, "fopen() failed");
 				fputs(optarg, f_texteditor);
 				fclose(f_texteditor);
 				printf("You changed text editor to %s\n", optarg);
@@ -226,13 +220,13 @@ int cmd_edit(int argc, char *argv[])
 
 	result = check_sneaky_paths(path_to_password);
 	if(result)
-		errprint("You have used forbidden paths\n");
+		errprint(1, "You have used forbidden paths\n");
 	globalSplitPath(path_to_password);
 
 	result = file_exist(gPath_pass);
 	if(result != F_ISFILE) {
-		if(result == F_ISDIR) errprint("It is a directory\n");
-		errprint("No such file exists\n");
+		if(result == F_ISDIR) errprint(1, "It is a directory\n");
+		errprint(1, "No such file exists\n");
 	}
 
 	// configure text editor file 
@@ -241,13 +235,13 @@ int cmd_edit(int argc, char *argv[])
 	if(f_texteditor == NULL) {
 		f_texteditor = fopen(TEXTEDITOR_FILE, "w");	
 		if(f_texteditor == NULL)
-			errprint("fopen() failed");
+			errprint(1, "fopen() failed");
 		fputs(STANDARD_TEXTEDITOR, f_texteditor); // in file
 		strcpy(text_editor, STANDARD_TEXTEDITOR); // in variable
 	}
 	else {
 		if(!fgets(text_editor, sizeof(char)*MAXLEN_TEXTEDITOR, f_texteditor))
-			errprint("fgets() failed");
+			errprint(1, "fgets() failed");
 	}
 	fclose(f_texteditor);
 
@@ -255,7 +249,7 @@ int cmd_edit(int argc, char *argv[])
 	// end configure
 
 	// decryption
-	char *public_gpgkey = getGPGKey();
+	char *public_gpgkey = get_pubkey();
 
 	char *decrypt_arg[] = {"gpg", "-d", "--quiet", "-r", public_gpgkey, "-o", path_to_password, gPath_pass, NULL};
 	easyFork("gpg", decrypt_arg);
@@ -307,35 +301,40 @@ int cmd_generate(int argc, char *argv[])
 	if(optind < argc) optind++; // for skip "generate"
 	dbgprint("passname: %s\n", argv[optind]);
 
-	if(argv[optind] == NULL)
+	char *path = argv[optind];
+	if(path == NULL)
 		usageprint("%s", description);
-	char *path_to_password = argv[optind];
 
 	if(pass_length < minlen_pass || pass_length > maxlen_pass)
-		errprint("You typed an incorrect number\n");
+		errprint(1, "You typed an incorrect length\n");
 
-	result = check_sneaky_paths(path_to_password);
+	result = check_sneaky_paths(path);
 	if(result)
-		errprint("You have used forbidden paths\n");
-	globalSplitPath(path_to_password);
+		errprint(1, "You have used forbidden paths\n");
 
-	if(file_exist(gPath_pass) == F_ISFILE) {
+	result = file_exist(path);
+	if(result == F_ISFILE) {
 		if(!flag_force) {
-			if(getOverwriteAnswer(path_to_password) != OW_YES)
+			if(overwrite_answer(path) != 'y')
 				return 1;
 		}
 	}
+	else if(result == F_ISDIR)
+		errprint(1, "You can't generate password for directory\n");
 
 	// generate password 
-	char gpass[pass_length];
-	generatePassword(gpass, pass_length);
+	char g_pass[pass_length];
+	gen_password(g_pass, pass_length);
 
-	result = insertPass(path_to_password, gpass, flag_copy);
+	result = insert_pass(path, g_pass);
 	if(result)
-		errprint("Can't add password to LockPassword");
+		errprint(1, "Can't add password to LockPassword");
 
-	if(!flag_copy) printf("Generated password: %s\n", gpass);
-	printf("Password added successfully for %s\n", path_to_password);
+	if(flag_copy)
+		copy_outside(g_pass);
+	else
+		printf("Generated password: %s\n", g_pass);
+	printf("Password added successfully for %s\n", path);
 	return 0;
 }
 
@@ -349,14 +348,14 @@ int cmd_remove(int argc, char *argv[])
 
 	result = check_sneaky_paths(path);
 	if(result)
-		errprint("You have used forbidden paths\n");
+		errprint(1, "You have used forbidden paths\n");
 
 	result = file_exist(path);
 	if(result == F_NOEXIST)
-		errprint("No such file exists\n");
+		errprint(1, "No such file exists\n");
 	if(result == F_ISDIR) {
 		if(count_dir_entries(path) != 0)
-			errprint("Directory not empty\n");
+			errprint(1, "Directory not empty\n");
 	}
 
 	remove(path);
@@ -394,18 +393,18 @@ int cmd_move(int argc, char *argv[])
 
 	result = check_sneaky_paths(old_path);
 	if(result)
-		errprint("You have used forbidden paths\n");
+		errprint(1, "You have used forbidden paths\n");
 	result = file_exist(old_path);
 	if(result == F_NOEXIST)
-		errprint("No such file exists\n");
+		errprint(1, "No such file exists\n");
 
 	result = check_sneaky_paths(new_path);
 	if(result)
-		errprint("You have used forbidden paths\n");
+		errprint(1, "You have used forbidden paths\n");
 	result = file_exist(new_path);
 	if(result != F_NOEXIST) {
 		if(!flag_force) {
-			if(getOverwriteAnswer(new_path) != OW_YES)
+			if(overwrite_answer(new_path) != 'y')
 				return 1;
 		}
 	}
@@ -472,7 +471,7 @@ int cmd_showtree(int argc, char *argv[])
 	if(argv[optind]) {
 		result = check_sneaky_paths(argv[optind]);
 		if(result)
-			errprint("You have used forbidden paths\n");
+			errprint(1, "You have used forbidden paths\n");
 		path = malloc(sizeof(char) * (strlen(argv[optind]) + 1));
 		strcpy(path, argv[optind]);
 	}
@@ -481,27 +480,33 @@ int cmd_showtree(int argc, char *argv[])
 		strcpy(path, ".");
 	}
 
-	if(opendir(path)) // if it's directory
+	result = file_exist(path);
+	if(result == F_ISDIR)
 	{
 		if(flag_copy)
-			errprint("You must type a passname, not a directory\n");
+			errprint(1, "You must type a passname, not a directory\n");
 
 		if(strcmp(path, ".") == 0) printf("Password Manager\n");
 		else printf("Password Manager/%s\n", path);
 		tree(path, "");
 	}
-	else
+	else if(result == F_ISFILE)
 	{
-		globalSplitPath(path);
-
-		if(file_exist(gPath_pass) == F_ISFILE)
-		{
-			char password[maxlen_pass];
-			getPassword(path, password, sizeof(char)*maxlen_pass, flag_copy);
-			if(!flag_copy)
-				printf("%s\n", password);
+		char *pass = get_password(path);
+		if(pass == NULL) {
+			free(path);
+			errprint(1, "Decrypt password failed\n");
 		}
-		else errprint("%s is not in the password storage\n", path);
+		if(flag_copy)
+			copy_outside(pass);
+		else
+			printf("%s\n", pass);
+
+		free(pass);
+	}
+	else {
+		free(path);
+		errprint(1, "This path is not in the password storage\n");
 	}
 
 	free(path);
@@ -543,7 +548,7 @@ static int goto_maindir()
 int main(int argc, char *argv[])
 {
 	if(!isatty(STDIN_FILENO))
-		errprint("Please, use a terminal to run this application\n");
+		errprint(1, "Please, use a terminal to run this application\n");
 
 	if(goto_maindir())
 		perror("chdir");
@@ -556,10 +561,8 @@ int main(int argc, char *argv[])
 	else
 		ret = cmd_showtree(argc, argv);
 
-	if(gPath_subdir != NULL) {
-		free(gPath_subdir);
+	if(gPath_pass != NULL)
 		free(gPath_pass);
-	}
 	
 	return ret;
 }
