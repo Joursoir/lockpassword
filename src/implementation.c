@@ -8,16 +8,15 @@
 #include <errno.h>
 #include <sys/stat.h>
 
+#include "implementation.h"
+#include "constants.h"
 #include "xstd.h"
 #include "easydir.h"
-#include "implementation.h"
 #include "r-gpgme.h"
 
 /* define in implementation.h */
 // GPG_PUBLICKEY_MAXLENGTH NNNN
 
-// == global var == 
-extern char *gPath_pass; // example: programming/github.com/joursoir.gpg
 
 void copy_outside(char *password)
 {

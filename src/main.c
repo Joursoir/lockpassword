@@ -16,38 +16,12 @@
 #include <errno.h>
 #include <sys/stat.h>
 
+#include "constants.h"
 #include "easydir.h"
 #include "xstd.h"
 #include "implementation.h"
 #include "exec-cmd.h"
 #include "tree.h"
-
-enum constants {
-	maxlen_texteditor = 16,
-	minlen_pass = 1,
-	maxlen_pass = 128,
-	stdlen_pass = 14
-};
-
-#define VERSION "1.0c"
-#define DATE_RELEASE "14 January, 2021"
-#define STANDARD_TEXTEDITOR "vim"
-#define MAXLEN_TEXTEDITOR 16
-#define LOCKPASS_DIR ".lock-password/"
-#define GPGKEY_FILE ".gpg-key"
-
-#define TEXTEDITOR_FILE ".text-editor"
-
-#define usageprint(...) \
-	do { \
-		fprintf(stdout, "Usage: lpass " __VA_ARGS__); \
-		return 1; \
-	} while(0)
-#ifdef DEBUG
-	#define dbgprint(...) fprintf(stderr, "Debug: " __VA_ARGS__)
-#else
-	#define dbgprint(...)
-#endif
 
 struct cmd_struct {
 	const char *cmd;
@@ -65,20 +39,6 @@ static struct cmd_struct commands[] = {
 	{ "version", cmd_version },
 	{ NULL, NULL }
 };
-
-// == global var == 
-char *gPath_pass = NULL; // example: programming/github.com/joursoir.gpg
-
-static void globalSplitPath(char *source)
-{
-	int len_path = strlen(source) + strlen(".gpg") + 1;	
-
-	gPath_pass = malloc(sizeof(char) * len_path); // path without working dir
-	strcpy(gPath_pass, source);
-	strcat(gPath_pass, ".gpg");
-
-	dbgprint("g_pass: %s\n", gPath_pass);
-}
 
 int cmd_init(int argc, char *argv[])
 {
@@ -188,46 +148,25 @@ int cmd_insert(int argc, char *argv[])
 
 int cmd_edit(int argc, char *argv[])
 {
-	const char description[] = "edit [-t=text-editor] passname\n";
-	const struct option long_options[] = {
-		{"text-editor", required_argument, NULL, 't'},
-		{NULL, 0, NULL, 0}
-	};
+	usageprint("Temporarily unavailable :(\n");
 
+/*
+	const char description[] = "edit passname\n";
 	int result;
-	while((result = getopt_long(argc, argv, "t:", long_options, NULL)) != -1) {
-		switch(result) {
-			case 't':
-			{
-				// create file, copy name text editor there
-				FILE *f_texteditor = fopen(TEXTEDITOR_FILE, "w");	
-				if(!f_texteditor)
-					errprint(1, "fopen() failed");
-				fputs(optarg, f_texteditor);
-				fclose(f_texteditor);
-				printf("You changed text editor to %s\n", optarg);
-				break;
-			}
-			default: usageprint("%s", description);
-		}
-	}
-
-	if(optind < argc) optind++; // for skip "edit"
-	char *path_to_password = argv[optind];
-	if(argv[optind] == NULL)
+	char *path = argv[2];
+	if(!path)
 		usageprint("%s", description);
-	dbgprint("passname: %s\n", argv[optind]);
+	dbgprint("passname: %s\n", path);
 
-	result = check_sneaky_paths(path_to_password);
+	result = check_sneaky_paths(path);
 	if(result)
 		errprint(1, "You have used forbidden paths\n");
-	globalSplitPath(path_to_password);
 
-	result = file_exist(gPath_pass);
-	if(result != F_ISFILE) {
-		if(result == F_ISDIR) errprint(1, "It is a directory\n");
+	result = file_exist(path);
+	if(result == F_NOEXIST)
 		errprint(1, "No such file exists\n");
-	}
+	else if(result == F_ISDIR)
+		errprint(1, "It is a directory\n");
 
 	// configure text editor file 
 	char text_editor[MAXLEN_TEXTEDITOR];
@@ -251,28 +190,29 @@ int cmd_edit(int argc, char *argv[])
 	// decryption
 	char *public_gpgkey = get_pubkey();
 
-	char *decrypt_arg[] = {"gpg", "-d", "--quiet", "-r", public_gpgkey, "-o", path_to_password, gPath_pass, NULL};
+	char *decrypt_arg[] = {"gpg", "-d", "--quiet", "-r", public_gpgkey, "-o", path, gPath_pass, NULL};
 	easyFork("gpg", decrypt_arg);
 
 	// start vim/etc for edit passowrd
-	char *editor_arg[] = {text_editor, path_to_password, NULL};
+	char *editor_arg[] = {text_editor, path, NULL};
 	easyFork(text_editor, editor_arg);
 
 	// delete '\n' and paste good pass
 	char password[maxlen_pass];
-	fileCropLineFeed(path_to_password, password, maxlen_pass);
+	fileCropLineFeed(path, password, maxlen_pass);
 
-	FILE *file = fopen(path_to_password, "w");	
+	FILE *file = fopen(path, "w");	
 	if(file == NULL) callError(108);
 	fputs(password, file);
 	fclose(file);
 
 	// encryption
-	char *encrypt_arg[] = {"gpg", "--quiet", "--yes", "-r", public_gpgkey, "-e", path_to_password, NULL};
+	char *encrypt_arg[] = {"gpg", "--quiet", "--yes", "-r", public_gpgkey, "-e", path, NULL};
 	easyFork("gpg", encrypt_arg);
 
-	remove(path_to_password);
+	remove(path);
 	free(public_gpgkey);
+*/
 	return 0;
 }
 
@@ -560,9 +500,6 @@ int main(int argc, char *argv[])
 		ret = ptr->func(argc, argv);
 	else
 		ret = cmd_showtree(argc, argv);
-
-	if(gPath_pass != NULL)
-		free(gPath_pass);
 	
 	return ret;
 }

@@ -3,11 +3,6 @@
 
 #define GPG_PUBLICKEY_MAXLENGTH 1024
 
-#define errprint(RET, ...) \
-	do { \
-		fprintf(stderr, "Error: " __VA_ARGS__); \
-		return RET; \
-	} while(0)
 
 void copy_outside(char *password);
 int check_sneaky_paths(const char *path);
