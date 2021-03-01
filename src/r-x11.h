@@ -19,6 +19,6 @@
 	along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ***/
 
-int run_clipboard(char *data);
+int run_clipboard(const char *data);
 
 #endif /* LPASS_RX11_H */

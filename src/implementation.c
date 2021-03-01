@@ -31,42 +31,41 @@
 #include "xstd.h"
 #include "easydir.h"
 #include "r-gpgme.h"
+#if defined(DISPLAY)
+	#include "r-x11.h"
+#endif
 
 /* define in implementation.h */
 // GPG_PUBLICKEY_MAXLENGTH NNNN
 
-
-void copy_outside(char *password)
+int copy_outside(char *password)
 {
-	char *simple_path = malloc(sizeof(char) * (5 + 1));
-	strcpy(simple_path, ".pass");
-
-	if(getenv("DISPLAY") != NULL)
-	{
-		FILE *f_pass;
-		f_pass = fopen(simple_path, "w");
-		if(f_pass == NULL) {
-			callError(130);
-		}
-		fputs(password, f_pass);
-		fclose(f_pass);
-
-		char *xclip[] = {"xclip", "-selection", "clipboard", "-i", simple_path, NULL};
-		easyFork("xclip", xclip);
-
-		remove(simple_path);
-		free(simple_path);
-	}
-	else if(getenv("WAYLAND_DISPLAY") != NULL)
-	{
-		char *wl_copy[] = {"wl-copy", password, NULL};
-		easyFork("wl-copy", wl_copy);
-	}
-	else printError("Error: No X11 or Wayland");
-
-	#if defined(DEBUG)
-	  	printf("Password copied to clipboard\n");
+	#if defined(DISPLAY)
+		int pid;
+		pid = fork();
+		if(pid == -1)
+			errprint(1, "X11 fork() failed\n");
+		if(pid == 0) /* new process */
+			exit(run_clipboard(password));
+		return 0;
 	#endif
+
+	if(getenv("WAYLAND_DISPLAY") != NULL) {
+		char * const wl_copy[] = {"wl-copy", password, NULL};
+		int pid;
+		pid = fork();
+		if(pid == -1)
+			errprint(1, "Wayland fork() failed\n");
+		if(pid == 0) { /* new process */
+			execvp("wl-copy", wl_copy);
+			perror("wl-copy");
+			exit(1);
+		}
+
+		return 0;
+	}
+
+	errprint(1, "You didn't have x11 or wayland when app builded\n");
 }
 
 /* check two dot in path */

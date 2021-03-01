@@ -65,7 +65,7 @@ static void send_data(Display *dpy, XSelectionRequestEvent *sev,
 	XSendEvent(dpy, sev->requestor, True, NoEventMask, (XEvent *)&ssev);
 }
 
-int run_clipboard(char *data)
+int run_clipboard(const char *data)
 {
 	Display *dpy;
 	Window owner, root;

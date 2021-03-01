@@ -21,7 +21,7 @@
 
 #define GPG_PUBLICKEY_MAXLENGTH 1024
 
-void copy_outside(char *password);
+int copy_outside(char *password);
 int check_sneaky_paths(const char *path);
 char *get_pubkey();
 char *get_password(const char *path);
