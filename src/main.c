@@ -396,7 +396,7 @@ int cmd_version(int argc, char *argv[])
 {
 	printf("LockPassword v%s\n"
 		"Release date: %s\n\n"
-		"Copyright (C) 2020-2021 Aleksandr D. Goncharov\n"
+		"Copyright (C) 2020-2021 Aleksandr D. Goncharov (Joursoir)\n"
 		"License: GNU GPL version 3\n"
 		"This is free software: you are free to change and redistribute it.\n"
 		"This program comes with ABSOLUTELY NO WARRANTY.\n",

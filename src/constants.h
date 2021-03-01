@@ -19,8 +19,8 @@
 	along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ***/
 
-#define VERSION "1.0c"
-#define DATE_RELEASE "14 January, 2021"
+#define VERSION "1.1a"
+#define DATE_RELEASE "1 March, 2021"
 
 #define LOCKPASS_DIR ".lock-password/"
 #define GPGKEY_FILE ".gpg-key"

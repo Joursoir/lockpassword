@@ -24,7 +24,7 @@ $(EXECUTABLE): $(OBJECTS)
 
 install: all
 	@echo installing files to $(PREFIX)
-	@install $(EXECUTABLE) $(PREFIX) && chmod 755 $(PREFIX)/$(EXECUTABLE)
+	@install -m 755 -v $(EXECUTABLE) $(PREFIX)
 	@echo installing man page
 	@cat $(MAN_SOURCES) | gzip > $(MAN_OBJECTS)
 	@install $(MAN_OBJECTS) $(MAN_PATH)
