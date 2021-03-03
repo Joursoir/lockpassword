@@ -290,18 +290,21 @@ int cmd_generate(int argc, char *argv[])
 		errprint(1, "You can't generate password for directory\n");
 
 	// generate password 
-	char g_pass[pass_length];
-	gen_password(g_pass, pass_length);
+	char *g_pass;
+	g_pass = gen_password(pass_length);
 
 	result = insert_pass(path, g_pass);
-	if(result)
+	if(result) {
+		free(g_pass);
 		errprint(1, "Can't add password to LockPassword");
+	}
 
 	if(flag_copy)
 		copy_outside(g_pass);
 	else
 		printf("Generated password: %s\n", g_pass);
 	printf("Password added successfully for %s\n", path);
+	free(g_pass);
 	return 0;
 }
 

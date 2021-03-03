@@ -19,13 +19,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <sys/wait.h>
 #include <errno.h>
 #include <dirent.h>
 
 #include "easydir.h"
-#include "xstd.h"
 
 int file_exist(const char *path)
 {

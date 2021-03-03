@@ -28,7 +28,6 @@
 
 #include "implementation.h"
 #include "constants.h"
-#include "xstd.h"
 #include "easydir.h"
 #include "r-gpgme.h"
 #if defined(DISPLAY)
@@ -174,19 +173,19 @@ char *get_input(int minlen, int maxlen)
 	return pass;
 }
 
-void gen_password(char *dest, int amount)
+char *gen_password(int length)
 {
 	int i, min = 33, max = 126;
-	char password[amount];
+	char *password = malloc(sizeof(char) * (length + 1));
 
 	srand(time(NULL));
-	for(i = 0; i < amount; i++) 
+	for(i = 0; i < length; i++) 
 		password[i] = min + rand() % (max-min);
 
-	strcpy(dest, password);
+	return password;
 }
 
-static void clearStdinBuff()
+static void clear_stdin()
 {
 	int garbage;
 	while( (garbage = fgetc(stdin)) != '\n' && garbage != EOF )
@@ -199,7 +198,7 @@ int overwrite_answer(const char *path)
 	printf("Password for \"%s\" exists. Overwrite? (Y/N)\n", path);
 	while((answer = fgetc(stdin)))
 	{
-		clearStdinBuff();
+		clear_stdin();
 		switch(answer)
 		{
 			case 'Y':

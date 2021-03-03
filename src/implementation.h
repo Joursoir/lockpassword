@@ -28,7 +28,7 @@ char *get_password(const char *path);
 void visible_enter(int status);
 int insert_pass(const char *path, const char *password);
 char *get_input(int minlen, int maxlen);
-void gen_password(char *dest, int amount);
+char *gen_password(int length);
 int overwrite_answer(const char *path);
 
 #endif

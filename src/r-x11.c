@@ -50,7 +50,7 @@ static void send_data(Display *dpy, XSelectionRequestEvent *sev,
 	if(target == X_utf8) {
 		an = XGetAtomName(dpy, sev->property);
 		if(an) {
-			dbgprint("Sending data, property '%s'\n", sev->requestor, an);
+			dbgprint("Sending data, property '%s'\n", an);
 			XFree(an);
 		}
 

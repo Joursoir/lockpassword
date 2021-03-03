@@ -19,9 +19,6 @@
 	along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ***/
 
-void easyFork(char *name, char *arguments[]);
-void callError(int num);
-void printError(const char *text);
 char *xstrcat(const char *first, const char *second,
 	const char *delimiter);
 
