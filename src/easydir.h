@@ -27,6 +27,5 @@ enum status_file {
 
 int file_exist(const char *path);
 int count_dir_entries(const char *path);
-char *fileCropLineFeed(char *path, char *text, int maxlen);
 
 #endif

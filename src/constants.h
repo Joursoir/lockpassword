@@ -24,6 +24,7 @@
 
 #define LOCKPASS_DIR ".lock-password/"
 #define GPGKEY_FILE ".gpg-key"
+#define STD_TEXT_EDITOR "vi"
 
 #define errprint(RET, ...) \
 	do { \

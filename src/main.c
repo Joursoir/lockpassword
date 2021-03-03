@@ -26,6 +26,8 @@
 #include <stdarg.h>
 #include <errno.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
+#include <fcntl.h>
 
 #include "constants.h"
 #include "easydir.h"
@@ -159,71 +161,85 @@ int cmd_insert(int argc, char *argv[])
 
 int cmd_edit(int argc, char *argv[])
 {
-	usageprint("Temporarily unavailable :(\n");
-
-/*
 	const char description[] = "edit passname\n";
-	int result;
+	int result, fd, pid, len_pass, save_errno;
+	/* We expect tmpfs to be mounted at /dev/shm */
+	char path_tmpfile[] = "/dev/shm/lpass.XXXXXX";
+	char *editor, *password;
 	char *path = argv[2];
 	if(!path)
 		usageprint("%s", description);
-	dbgprint("passname: %s\n", path);
 
 	result = check_sneaky_paths(path);
 	if(result)
 		errprint(1, "You have used forbidden paths\n");
 
-	result = file_exist(path);
-	if(result == F_NOEXIST)
-		errprint(1, "No such file exists\n");
-	else if(result == F_ISDIR)
-		errprint(1, "It is a directory\n");
+	editor = getenv("EDITOR");
+	if(!editor)
+		editor = STD_TEXT_EDITOR;
 
-	// configure text editor file 
-	char text_editor[MAXLEN_TEXTEDITOR];
-	FILE *f_texteditor = fopen(TEXTEDITOR_FILE, "r");	
-	if(f_texteditor == NULL) {
-		f_texteditor = fopen(TEXTEDITOR_FILE, "w");	
-		if(f_texteditor == NULL)
-			errprint(1, "fopen() failed");
-		fputs(STANDARD_TEXTEDITOR, f_texteditor); // in file
-		strcpy(text_editor, STANDARD_TEXTEDITOR); // in variable
+	password = get_password(path);
+	if(password == NULL)
+		errprint(1, "Decrypt password failed\n");
+
+	fd = mkstemp(path_tmpfile);
+	if(fd == -1) {
+		free(password);
+		errprint(1, "mkstemp() failed\n");
 	}
-	else {
-		if(!fgets(text_editor, sizeof(char)*MAXLEN_TEXTEDITOR, f_texteditor))
-			errprint(1, "fgets() failed");
+	dbgprint("tmp file: %s\n", path_tmpfile);
+
+	len_pass = strlen(password);
+	result = write(fd, password, len_pass);
+	free(password);
+	close(fd);
+	if(result != len_pass) {
+		unlink(path_tmpfile);
+		errprint(1, "Write password to temporary file failed\n");
 	}
-	fclose(f_texteditor);
 
-	dbgprint("text editor: %s\n", text_editor);
-	// end configure
+	// fork for text editor
+	char *editor_arg[] = {editor, path_tmpfile, NULL};
+	pid = fork();
+	if(pid == -1) {
+		unlink(path_tmpfile);
+		errprint(1, "%s fork() failed\n", editor);
+	}
+	if(pid == 0) { /* new process */
+		execvp(editor, editor_arg);
+		perror(editor);
+		exit(1);
+	}
+	wait(&pid);
 
-	// decryption
-	char *public_gpgkey = get_pubkey();
+	fd = open(path_tmpfile, O_RDONLY);
+	if(fd == -1) {
+		unlink(path_tmpfile);
+		perror("open");
+		return 1;
+	}
 
-	char *decrypt_arg[] = {"gpg", "-d", "--quiet", "-r", public_gpgkey, "-o", path, gPath_pass, NULL};
-	easyFork("gpg", decrypt_arg);
+	password = malloc(sizeof(char) * (maxlen_pass + 1));
+	len_pass = read(fd, password, maxlen_pass);
+	save_errno = errno;
+	close(fd);
+	unlink(path_tmpfile);
+	if(len_pass < minlen_pass) {
+		free(password);
+		if(len_pass == -1)
+			errprint(1, "Read temporary file: %s\n", strerror(save_errno));
+		else
+			errprint(1, "Min. password length is %d\n", minlen_pass);
+	}
+	password[len_pass-1] = '\0';
+	dbgprint("new pass: %s\n", password);
 
-	// start vim/etc for edit passowrd
-	char *editor_arg[] = {text_editor, path, NULL};
-	easyFork(text_editor, editor_arg);
+	// encrypt
+	result = insert_pass(path, password);
+	free(password);
+	if(result)
+		errprint(1, "Can't add password to LockPassword\n");
 
-	// delete '\n' and paste good pass
-	char password[maxlen_pass];
-	fileCropLineFeed(path, password, maxlen_pass);
-
-	FILE *file = fopen(path, "w");	
-	if(file == NULL) callError(108);
-	fputs(password, file);
-	fclose(file);
-
-	// encryption
-	char *encrypt_arg[] = {"gpg", "--quiet", "--yes", "-r", public_gpgkey, "-e", path, NULL};
-	easyFork("gpg", encrypt_arg);
-
-	remove(path);
-	free(public_gpgkey);
-*/
 	return 0;
 }
 
