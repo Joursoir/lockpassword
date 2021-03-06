@@ -1,4 +1,4 @@
-.TH "LPASS" "1" "1\ \&MARCH\ \&2021" "LPASS v1.1a" "LockPassword"
+.TH "LPASS" "1" "6\ \&MARCH\ \&2021" "LPASS v1.1b" "LockPassword"
 
 .SH "NAME"
 LockPassword - a password manager.
@@ -21,6 +21,12 @@ Initialize the password manager using the passed \fIgpg-key\fR as the encryption
 Add the specified \fIpassname\fR to the password manager. The password will be read interactively using standard input, character display is hidden. The \fB-e, --echo\fR argument enable the show of characters when typing a password; \fB-c, --copy\fR write password to clipboard; \fB-f, --force\fR ignore exist of \fIpassname\fR, overwrites it without prompt.
 .RE
 .PP
+
+\fBedit \fIpassname\fR
+.RS 4
+Open the specified \fIpassname\fR in a text editor, waiting for changes. The text editor specified in the environment variable EDITOR or \fBvi\fR(1) is used. Temporary file for password editing locate in tmpfs / ramfs (we expect that it to be mounted at /dev/shm).
+.RE
+.PP 
 
 \fBgenerate\fR [-l, --length=pass-length] [-c, --copy] [-f, --force] \fIpassname\fR
 .RS 4

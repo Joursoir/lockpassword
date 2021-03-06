@@ -5,6 +5,9 @@ a simple terminal password manager, using GnuPG to encrypt passwords. Distribute
 * GnuPG
 * [GPGME](gnupg.org/software/gpgme/) - GnuPG high-level crypto API
 
+### Optional:
+* X11 environment
+
 ## Installation:
 Run the next commands:
 ```
@@ -20,6 +23,8 @@ lpass [command] [options]
 Initialize the password manager using the passed *gpg-key* as the encryption key. This command must be run first before you start working with LockPassword.
 ### insert [**-e, --echo**] [**-c, --copy**] [**-f, --force**] *passname*
 Add the specified *passname* to the password manager. The password will be read interactively using standard input, character display is hidden. The **-e, --echo** argument enable the show of characters when typing a password; **-c, --copy** write password to clipboard; **-f, --force** ignore exist of *passname*, overwrites it without prompt.
+### edit *passname*
+Open the specified *passname* in a text editor, waiting for changes. The text editor specified in the environment variable EDITOR or vi(1) is used. Temporary file for password editing locate in tmpfs / ramfs (we expect that it to be mounted at /dev/shm).
 ### generate [**-l, --length=pass-length**] [**-c, --copy**] [**-f, --force**] *passname*
 Generate a random password and write it in *passname*. The **-l, --length = pass-length** argument allow you to specify the desired password length. Without this argument, a 14 character password will be generated. **-c, --copy** write password to clipboard; **-f, --force** ignore exist of *passname*, overwrites it without prompt.
 ### mv [**-f, --force**] *old-path* *new-path*
