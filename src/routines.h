@@ -1,5 +1,5 @@
-#ifndef IMPLEMENTATION_H
-#define IMPLEMENTATION_H
+#ifndef LPASS_ROUTINES_H
+#define LPASS_ROUTINES_H
 
 /***
 	This file is part of LockPassword
@@ -31,4 +31,4 @@ char *get_input(int minlen, int maxlen);
 char *gen_password(int length);
 int overwrite_answer(const char *path);
 
-#endif
+#endif /* LPASS_ROUTINES_H */

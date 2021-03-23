@@ -23,9 +23,8 @@
 #include <errno.h>
 #include <gpgme.h>
 
+#include "constants.h"
 #include "r-gpgme.h"
-
-#define BUF_SIZE 128
 
 #ifdef DEBUG
 	#define ret_if_err(ret, err) \
@@ -79,7 +78,7 @@ static int init_ctx(gpgme_ctx_t ctx, gpgme_protocol_t protocol)
 
 static int loop_read(const char *path, gpgme_data_t dh)
 {
-	char buf[BUF_SIZE];
+	char buf[maxlen_pass];
 	int ret;
 
 	FILE *f = fopen(path, "w");	
@@ -91,7 +90,7 @@ static int loop_read(const char *path, gpgme_data_t dh)
 		fclose(f);
 		ret_if_err(1, gpgme_err_code_from_errno(errno));
 	}
-	while((ret = gpgme_data_read(dh, buf, BUF_SIZE)) > 0)
+	while((ret = gpgme_data_read(dh, buf, maxlen_pass)) > 0)
 		fwrite(buf, ret, 1, f);
 	if(ret < 0) {
 		fclose(f);
@@ -165,8 +164,8 @@ char *decrypt_data(const char *path)
 	if(ret)
 		ret_if_err(NULL, gpgme_err_code_from_errno(errno));
 
-	char *data = malloc(sizeof(char) * (BUF_SIZE + 1));
-	gpgme_data_read(plain, data, BUF_SIZE);
+	char *data = malloc(sizeof(char) * (maxlen_pass + 1));
+	gpgme_data_read(plain, data, maxlen_pass);
 	
 	gpgme_data_release(plain);
 	gpgme_data_release(cipher);

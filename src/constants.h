@@ -51,7 +51,7 @@
 #endif
 
 enum {
-	maxlen_texteditor = 16,
+	maxlen_fingerprint = 256,
 	minlen_pass = 1,
 	maxlen_pass = 128,
 	stdlen_pass = 14

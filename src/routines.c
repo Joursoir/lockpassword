@@ -26,16 +26,13 @@
 #include <errno.h>
 #include <sys/stat.h>
 
-#include "implementation.h"
+#include "routines.h"
 #include "constants.h"
 #include "easydir.h"
 #include "r-gpgme.h"
 #if defined(DISPLAY)
 	#include "r-x11.h"
 #endif
-
-/* define in implementation.h */
-// GPG_PUBLICKEY_MAXLENGTH NNNN
 
 int copy_outside(char *password)
 {
@@ -81,24 +78,22 @@ int check_sneaky_paths(const char *path)
 
 char *get_pubkey()
 {
-	int size_key = sizeof(char) * GPG_PUBLICKEY_MAXLENGTH;
-	char *pubkey = malloc(size_key + sizeof(char));
+	char *pubkey;
 
 	FILE *fileGPG = fopen(".gpg-key", "r");
 	if(fileGPG == NULL) {
-		free(pubkey);
 		if(errno == ENOENT)
-			errprint_r(NULL, "No GPG key exists. Use \"lpass init\".");
-		perror(".gpg-key");
-		return NULL;
+			errprint_r(NULL, "No GPG key exists. Use \"lpass init\"\n");
+		errprint_r(NULL, "%s\n", strerror(errno));
 	}
 
-	if(!fgets(pubkey, size_key, fileGPG)) {
+	pubkey = malloc(sizeof(char) * (maxlen_fingerprint + 1));
+	if(fgets(pubkey, maxlen_fingerprint + 1, fileGPG) == NULL) {
 		free(pubkey);
-		pubkey = NULL;
+		errprint_ptr(&pubkey, NULL, "%s\n", strerror(errno));
 	}
-	fclose(fileGPG);
 
+	fclose(fileGPG);
 	return pubkey;
 }
 
@@ -152,13 +147,12 @@ int insert_pass(const char *path, const char *password)
 
 char *get_input(int minlen, int maxlen)
 {
-	size_t size = sizeof(char) * maxlen;
-	char *pass = malloc(size + sizeof(char)); // +1 for '\0'
+	char *pass = malloc(sizeof(char) * (maxlen + 1));
 	int len;
 
-	if(fgets(pass, size, stdin) == NULL) {
+	if(fgets(pass, maxlen + 1, stdin) == NULL) {
 		free(pass);
-		return NULL;
+		errprint_ptr(&pass, NULL, "%s\n", strerror(errno));
 	}
 
 	len = strlen(pass);

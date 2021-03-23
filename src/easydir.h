@@ -1,5 +1,5 @@
-#ifndef EASYDIR_H
-#define EASYDIR_H
+#ifndef LPASS_EASYDIR_H
+#define LPASS_EASYDIR_H
 
 /***
 	This file is part of LockPassword
@@ -28,4 +28,4 @@ enum status_file {
 int file_exist(const char *path);
 int count_dir_entries(const char *path);
 
-#endif
+#endif /* LPASS_EASYDIR_H */

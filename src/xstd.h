@@ -22,4 +22,4 @@
 char *xstrcat(const char *first, const char *second,
 	const char *delimiter);
 
-#endif
+#endif /* LPASS_XSTD_H */
