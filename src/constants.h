@@ -26,10 +26,16 @@
 #define GPGKEY_FILE ".gpg-key"
 #define STD_TEXT_EDITOR "vi"
 
-#define errprint(RET, ...) \
+#define errprint_r(RET, ...) \
 	do { \
 		fprintf(stderr, "Error: " __VA_ARGS__); \
 		return RET; \
+	} while(0)
+
+#define errprint_ptr(PTR, RETVAL, ...) \
+	do { \
+		fprintf(stderr, "Error: " __VA_ARGS__); \
+		*PTR = RETVAL; \
 	} while(0)
 
 #define usageprint(...) \

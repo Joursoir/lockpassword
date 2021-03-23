@@ -76,7 +76,7 @@ int run_clipboard(const char *data)
 
 	dpy = XOpenDisplay(NULL); // means use env $DISPLAY
 	if(!dpy)
-		errprint(1, "Open X display failed\n");
+		errprint_r(1, "Open X display failed\n");
 
 	screen = DefaultScreen(dpy);
 	root = RootWindow(dpy, screen);

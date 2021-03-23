@@ -43,7 +43,7 @@ int copy_outside(char *password)
 		int pid;
 		pid = fork();
 		if(pid == -1)
-			errprint(1, "X11 fork() failed\n");
+			errprint_r(1, "X11 fork() failed\n");
 		if(pid == 0) /* new process */
 			exit(run_clipboard(password));
 		return 0;
@@ -54,7 +54,7 @@ int copy_outside(char *password)
 		int pid;
 		pid = fork();
 		if(pid == -1)
-			errprint(1, "Wayland fork() failed\n");
+			errprint_r(1, "Wayland fork() failed\n");
 		if(pid == 0) { /* new process */
 			execvp("wl-copy", wl_copy);
 			perror("wl-copy");
@@ -64,7 +64,7 @@ int copy_outside(char *password)
 		return 0;
 	}
 
-	errprint(1, "You didn't have x11 or wayland when app builded\n");
+	errprint_r(1, "You didn't have x11 or wayland when app builded\n");
 }
 
 /* check two dot in path */
@@ -88,7 +88,7 @@ char *get_pubkey()
 	if(fileGPG == NULL) {
 		free(pubkey);
 		if(errno == ENOENT)
-			errprint(NULL, "No GPG key exists. Use \"lpass init\".");
+			errprint_r(NULL, "No GPG key exists. Use \"lpass init\".");
 		perror(".gpg-key");
 		return NULL;
 	}
