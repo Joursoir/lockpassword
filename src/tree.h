@@ -19,6 +19,6 @@
 	along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ***/
 
-int tree(const char *path, const char *prefix);
+int tree(const char *path, const char *prefix, int use_color);
 
 #endif /* LPASS_TREE_H */

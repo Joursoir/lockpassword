@@ -47,7 +47,7 @@ static void entries_sort(char **entries, const int size)
 	}
 }
 
-int tree(const char *path, const char *prefix)
+int tree(const char *path, const char *prefix, int use_color)
 {
 	DIR *main_dir;
 	struct dirent *temp_dirent;
@@ -90,16 +90,19 @@ int tree(const char *path, const char *prefix)
 		}
 
 		full_path = xstrcat(path, entries[i], "/");
+		printf("%s%s", prefix, pointer);
 		if(file_exist(full_path) == F_ISDIR) {
-			printf("%s%s%s%s%s\n", prefix, pointer, ANSIC_BBLU,
-				entries[i], ANSIC_RST);
+			printf("%s%s%s\n", 
+				(use_color) ? ANSIC_BBLU : "",
+				entries[i],
+				(use_color) ? ANSIC_RST : "");
 
 			prefix_depth = xstrcat(prefix, prefix_depth, NULL);
-			tree(full_path, prefix_depth);
+			tree(full_path, prefix_depth, use_color);
 			free(prefix_depth);
 		}
 		else
-			printf("%s%s%s\n", prefix, pointer, entries[i]);
+			printf("%s\n", entries[i]);
 
 		free(entries[i]);
 		free(full_path);
