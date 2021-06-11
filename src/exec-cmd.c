@@ -424,18 +424,20 @@ int cmd_version(int argc, char *argv[])
 
 int cmd_showtree(int argc, char *argv[])
 {
-	const char description[] = "[-c] [passname]\n";
-	int flag_copy = 0;
+	const char description[] = "[-cC] [passname]\n";
+	int flag_copy = 0, flag_color = 1;
 	int retval = 0, result;
 	char *path;
 	const struct option long_options[] = {
 		{"copy", no_argument, NULL, 'c'},
+		{"no-color", no_argument, NULL, 'C'},
 		{NULL, 0, NULL, 0}
 	};
 
-	while((result = getopt_long(argc, argv, "c", long_options, NULL)) != -1) {
+	while((result = getopt_long(argc, argv, "cC", long_options, NULL)) != -1) {
 		switch(result) {
 			case 'c': { flag_copy = 1; break; }
+			case 'C': { flag_color = 0; break; }
 			default: usageprint("%s", description);
 		}
 	}
@@ -467,7 +469,7 @@ int cmd_showtree(int argc, char *argv[])
 				printf("Password Manager\n");
 			else
 				printf("Password Manager/%s\n", path);
-			tree(path, "");
+			tree(path, "", flag_color);
 		}
 		else if(result == F_ISFILE)
 		{
