@@ -3,7 +3,8 @@ CC = gcc
 CFLAGS = -Wall -g #-DDEBUG
 LIBS = $(shell gpgme-config --cflags --libs)
 MAN_PATH = /usr/share/man/man1
-SOURCES = src/main.c \
+SOURCES = \
+	src/lpass.c \
 	src/exec-cmd.c \
 	src/routines.c \
 	src/easydir.c \
