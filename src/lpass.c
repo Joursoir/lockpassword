@@ -87,7 +87,7 @@ int main(int argc, char *argv[])
 
 	struct cmd_struct *ptr = get_cmd(argv[1]);
 	if(ptr)
-		return ptr->func(argc, argv);
+		return ptr->func(--argc, ++argv);
 	
-	return cmd_showtree(argc, argv);
+	return cmd_showtree(--argc, ++argv);
 }

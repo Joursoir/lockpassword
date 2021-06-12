@@ -77,9 +77,6 @@ int cmd_insert(int argc, char *argv[])
 		}
 	}
 
-	if(optind < argc) optind++; // for skip "insert"
-	dbgprint("passname: %s\n", argv[optind]);
-
 	char *path = argv[optind];
 	if(path == NULL)
 		usageprint("%s", description);
@@ -158,7 +155,7 @@ int cmd_edit(int argc, char *argv[])
 	/* We expect tmpfs to be mounted at /dev/shm */
 	char path_tmpfile[] = "/dev/shm/lpass.XXXXXX";
 	char *editor, *password;
-	char *path = argv[2];
+	char *path = argv[1];
 	if(!path)
 		usageprint("%s", description);
 
@@ -262,9 +259,6 @@ int cmd_generate(int argc, char *argv[])
 		}
 	}
 
-	if(optind < argc) optind++; // for skip "generate"
-	dbgprint("passname: %s\n", argv[optind]);
-
 	char *path = argv[optind];
 	if(path == NULL)
 		usageprint("%s", description);
@@ -308,7 +302,7 @@ int cmd_remove(int argc, char *argv[])
 {
 	const char description[] = "rm passname\n";
 	int result;
-	char *path = argv[2];
+	char *path = argv[1];
 	if(!path)
 		usageprint("%s", description);
 
@@ -350,7 +344,6 @@ int cmd_move(int argc, char *argv[])
 		}
 	}
 
-	if(optind < argc) optind++; // for skip "move"
 	if(!argv[optind] || !argv[optind+1])
 		usageprint("%s", description);
 
