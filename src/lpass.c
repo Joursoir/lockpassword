@@ -46,6 +46,9 @@ static struct cmd_struct commands[] = {
 
 static struct cmd_struct *get_cmd(const char *name)
 {
+	if(!name)
+		return NULL;
+
 	struct cmd_struct *ptr;
 	for(ptr = commands; ptr->cmd; ptr++) {
 		if(strcmp(name, ptr->cmd) == 0)
@@ -82,9 +85,8 @@ int main(int argc, char *argv[])
 	if(goto_maindir())
 		errprint_r(1, "%s", strerror(errno));
 
-	char *cmd = (argv[1] != NULL) ? argv[1] : "";
-	struct cmd_struct *ptr;
-	if((ptr = get_cmd(cmd)))
+	struct cmd_struct *ptr = get_cmd(argv[1]);
+	if(ptr)
 		return ptr->func(argc, argv);
 	
 	return cmd_showtree(argc, argv);
