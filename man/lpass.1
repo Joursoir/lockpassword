@@ -4,7 +4,7 @@
 LockPassword - a password manager.
 
 .SH "SYNOPSIS"
-\fBlpass\fR [command] [options]
+\fBlpass\fR \fIcommand\fR [\fIoptions\fR]
 
 .SH "DESCRIPTION"
 \fBlpass\fR - a simple terminal password manager, using GnuPG to encrypt passwords.
@@ -19,6 +19,12 @@ Initialize the password manager using the passed \fIgpg-key\fR as the encryption
 \fBinsert\fR [-e, --echo] [-c, --copy] [-f, --force] \fIpassname\fR
 .RS 4
 Add the specified \fIpassname\fR to the password manager. The password will be read interactively using standard input, character display is hidden. The \fB-e, --echo\fR argument enable the show of characters when typing a password; \fB-c, --copy\fR write password to clipboard; \fB-f, --force\fR ignore exist of \fIpassname\fR, overwrites it without prompt.
+.RE
+.PP
+
+\fBshow\fR [-c, --copy] [-C, --no-color] [\fIpassname\fR]
+.RS 4
+If no \fIpassname\fR is specified, \fIpassname\fR will assign root of password manager tree. If \fIpassname\fR is directory, list names of passwords inside the at \fIpassname\fR. Otherwise decrypt and print a password of \fIpassname\fR. The \fB-c, --copy\fR write password to clipboard; \fB-C, --no-color\fR cancel colorize the output.
 .RE
 .PP
 
@@ -82,7 +88,7 @@ Password added successfully for games/chess/user
 
 Print a list of exists password:
 .RS 4
-\fB$ lpass\fR
+\fB$ lpass show\fR
 .br
 Password Manager
 .br
@@ -108,7 +114,7 @@ Password Manager
 
 Print a list of exists password in some directory:
 .RS 4
-\fB$ lpass banks\fR
+\fB$ lpass show banks\fR
 .br
 Password Manager/banks
 .br
@@ -124,7 +130,7 @@ Password Manager/banks
 
 Show password:
 .RS 4
-\fB$ lpass games/iko/LordOfNight\fR
+\fB$ lpass show games/iko/LordOfNight\fR
 .br
 helloitismypassword123
 .RE
@@ -132,7 +138,7 @@ helloitismypassword123
 
 Copy password to clipboard:
 .RS 4
-\fB$ lpass -c games/iko/LordOfNight
+\fB$ lpass show -c games/iko/LordOfNight
 .RE
 .PP
 

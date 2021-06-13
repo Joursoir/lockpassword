@@ -16,13 +16,15 @@ sudo make install
 ```
 
 ## Synopsis:
-lpass [command] [options]
+**lpass** *command* [*options*]
 
 ## Commands:
 ### init *gpg-key*
 Initialize the password manager using the passed *gpg-key* as the encryption key. This command must be run first before you start working with LockPassword.
 ### insert [**-e, --echo**] [**-c, --copy**] [**-f, --force**] *passname*
 Add the specified *passname* to the password manager. The password will be read interactively using standard input, character display is hidden. The **-e, --echo** argument enable the show of characters when typing a password; **-c, --copy** write password to clipboard; **-f, --force** ignore exist of *passname*, overwrites it without prompt.
+### show [**-c, --copy**] [**-C, --no-color**] [*passname*]
+If no *passname* is specified, *passname* will assign root of password manager tree. If *passname* is directory, list names of passwords inside the at *passname*. Otherwise decrypt and print a password of *passname*. The **-c, --copy** write password to clipboard; **-C, --no-color** cancel colorize the output.
 ### edit *passname*
 Open the specified *passname* in a text editor, waiting for changes. The text editor specified in the environment variable EDITOR or vi(1) is used. Temporary file for password editing locate in tmpfs / ramfs (we expect that it to be mounted at /dev/shm).
 ### generate [**-l, --length=pass-length**] [**-c, --copy**] [**-f, --force**] *passname*
@@ -57,7 +59,7 @@ Password added successfully for games/chess/user
 
 * Print a list of exists password:
 ```
-$ lpass
+$ lpass show
 Password Manager
 |-- banks
 |   |-- abankpro
@@ -72,7 +74,7 @@ Password Manager
 
 * Print a list of exists password in some directory:
 ```
-$ lpass banks
+$ lpass show banks
 Password Manager/banks
 |-- abankpro
 |   `-- phone_number
@@ -82,13 +84,13 @@ Password Manager/banks
 
 * Show password:
 ```
-$ lpass games/iko/LordOfNight
+$ lpass show games/iko/LordOfNight
 helloitismypassword123
 ```
 
 * Copy password to clipboard:
 ```
-$ lpass -c games/iko/LordOfNight
+$ lpass show -c games/iko/LordOfNight
 ```
 
 * Generate password:
