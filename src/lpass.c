@@ -35,6 +35,7 @@ struct cmd_struct {
 static struct cmd_struct commands[] = {
 	{ "init", cmd_init },
 	{ "insert", cmd_insert },
+	{ "show", cmd_showtree },
 	{ "edit", cmd_edit },
 	{ "generate", cmd_generate },
 	{ "rm", cmd_remove },
@@ -89,5 +90,6 @@ int main(int argc, char *argv[])
 	if(ptr)
 		return ptr->func(--argc, ++argv);
 	
-	return cmd_showtree(--argc, ++argv);
+	cmd_help(argc, argv);
+	return 1;
 }
