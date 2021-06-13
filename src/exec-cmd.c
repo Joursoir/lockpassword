@@ -379,13 +379,16 @@ int cmd_move(int argc, char *argv[])
 int cmd_help(int argc, char *argv[])
 {
 	printf("Synopsis:\n"
-		"\tlpass [command] [arguments] ...\n"
+		"\tlpass command [arguments] ...\n"
 
 		"Commands:\n"
 		"\tinit gpg-key\n"
 		"\t\tInitialize the password manager using the passed gpg-key.\n"
 		"\tinsert [-e, --echo] [-c, --copy] [-f, --force] passname\n"
 		"\t\tAdd the specified passname to the password manager.\n"
+		"\tshow [-c, --copy] [-C, --no-color] [passname]\n"
+		"\t\tIf the specified passname is file, decrypt and print a password of passname. "
+		"Otherwise list passnames inside the tree at passname.\n"
 		"\tedit [-t, --text-editor=text-editor] passname\n"
 		"\t\tOpen the specified passname in a text editor, waiting for changes.\n"
 		"\tgenerate [-l, --length=pass-length] [-c, --copy] [-f, --force] passname\n"
