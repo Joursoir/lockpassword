@@ -3,6 +3,7 @@ CC = gcc
 CFLAGS = -Wall -g #-DDEBUG
 LIBS = $(shell gpgme-config --cflags --libs)
 MAN_PATH = /usr/share/man/man1
+COMPLETION_PATH = /usr/share/bash-completion/completions/lpass
 SOURCES = \
 	src/lpass.c \
 	src/exec-cmd.c \
@@ -35,15 +36,13 @@ $(EXECUTABLE): $(OBJECTS)
 	@$(CC) $(CFLAGS) $(LIBS) -c $< -o $@
 
 install: all
-	@echo installing files to $(PREFIX)
-	@install -m 755 -v $(EXECUTABLE) $(PREFIX)
-	@echo installing man page
+	install -m 755 -v $(EXECUTABLE) $(PREFIX)
+	install -m 0644 -v contrib/completion/lpass-completion.sh $(COMPLETION_PATH)
 	@cat $(MAN_SOURCES) | gzip > $(MAN_OBJECTS)
-	@install $(MAN_OBJECTS) $(MAN_PATH)
+	install $(MAN_OBJECTS) $(MAN_PATH)
 
 uninstall:
-	@echo removing files from $(PREFIX)
-	@echo deleting man page
-	@rm -rf \
+	rm -rf \
 		$(PREFIX)/$(EXECUTABLE) \
-		$(MAN_PATH)/$(MAN_OBJECTS)
+		$(MAN_PATH)/$(MAN_OBJECTS) \
+		$(COMPLETION_PATH)
