@@ -1,0 +1,11 @@
+LockPassword - a simple terminal password manager, using GnuPG to encrypt passwords.
+
+Project page in world wide web: http://git.joursoir.net/lock-password/
+
+Please see the man page for documentation and examples.
+
+Dependencies:
+* GnuPG
+  https://www.gnupg.org/
+* GPGME
+  https://www.gnupg.org/software/gpgme/
