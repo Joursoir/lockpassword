@@ -1,82 +1,82 @@
-.TH "LPASS" "1" "13\ \&JUNE\ \&2021" "LPASS v1.1c" "LockPassword"
+.TH LPASS 1 "13 JUNE 2021" "LPASS v1.1c" LockPassword
 
-.SH "NAME"
+.SH NAME
 LockPassword - a password manager.
 
-.SH "SYNOPSIS"
-\fBlpass\fR \fIcommand\fR [\fIoptions\fR]
+.SH SYNOPSIS
+.B lpass
+<\fIcommand\fR> [<\fIoptions\fR>]
 
-.SH "DESCRIPTION"
-\fBlpass\fR - a simple terminal password manager, using GnuPG to encrypt passwords.
+.SH DESCRIPTION
+.B lpass
+- a simple terminal password manager, using GnuPG to encrypt passwords.
 
-.SH "COMMANDS"
-\fBinit \fIgpg-key\fR
+.SH COMMANDS
+
+.B init
+<\fIgpg-key\fR>
 .RS 4
 Initialize the password manager using the passed \fIgpg-key\fR as the encryption key. This command must be run first before you start working with LockPassword.
 .RE
-.PP
 
-\fBinsert\fR [-e, --echo] [-c, --copy] [-f, --force] \fIpassname\fR
+.B insert
+[\fB-e\fR, \fB--echo\fR] [\fB-c\fR, \fB--copy\fR] [\fB-f\fR, \fB--force\fR] <\fIpassname\fR>
 .RS 4
 Add the specified \fIpassname\fR to the password manager. The password will be read interactively using standard input, character display is hidden. The \fB-e, --echo\fR argument enable the show of characters when typing a password; \fB-c, --copy\fR write password to clipboard; \fB-f, --force\fR ignore exist of \fIpassname\fR, overwrites it without prompt.
 .RE
-.PP
 
-\fBshow\fR [-c, --copy] [-C, --no-color] [\fIpassname\fR]
+.B show
+[\fB-c\fR, \fB--copy\fR] [\fB-C\fR, \fB--no-color\fR] [<\fIpassname\fR>]
 .RS 4
 If no \fIpassname\fR is specified, \fIpassname\fR will assign root of password manager tree. If \fIpassname\fR is directory, list names of passwords inside the at \fIpassname\fR. Otherwise decrypt and print a password of \fIpassname\fR. The \fB-c, --copy\fR write password to clipboard; \fB-C, --no-color\fR cancel colorize the output.
 .RE
-.PP
 
-\fBedit \fIpassname\fR
+.B edit
+<\fIpassname\fR>
 .RS 4
 Open the specified \fIpassname\fR in a text editor, waiting for changes. The text editor specified in the environment variable EDITOR or \fBvi\fR(1) is used. Temporary file for password editing locate in tmpfs / ramfs (we expect that it to be mounted at /dev/shm).
-.RE
-.PP 
+.RE 
 
-\fBgenerate\fR [-l, --length=pass-length] [-c, --copy] [-f, --force] \fIpassname\fR
+.B generate
+[\fB-l\fR, \fB--length=pass-length\fR] [\fB-c\fR, \fB--copy\fR] [\fB-f\fR, \fB--force\fR] <\fIpassname\fR>
 .RS 4
 Generate a random password and write it in \fIpassname\fR. The \fB-l, --length = pass-length\fR argument allow you to specify the desired password length. Without this argument, a 14 character password will be generated. \fB-c, --copy\fR write password to clipboard; \fB-f, --force\fR ignore exist of \fIpassname\fR, overwrites it without prompt.
 .RE
-.PP
 
-\fBmv\fR [-f, --force] \fIold-path new-path\fR
+.B mv
+[\fB-f\fR, \fB--force\fR] <\fIold-path\fR> <\fInew-path\fR>
 .RS 4
 Move/rename \fIold-path\fR to \fInew-path\fR. \fIold-path\fR must be an exist file, \fInew-path\fR can be a file/directory. The \fB-f, --force\fR argument ignore exist of \fInew-path\fR (if it's a file), overwrites it without prompt.
 .RE
-.PP
 
-\fBrm \fIpassname\fR
+.B rm
+<\fIpassname\fR>
 .RS 4
 Remove the \fIpassname\fR you specified from the password manager. If the directories where your \fIpassname\fR was nested became empty after deletion, then they are also deleted.
 .RE
-.PP
 
-\fBhelp\fR
+.B help
 .RS 4
 Print help information about commands and the application itself.
 .RE
-.PP
 
-\fBversion\fR
+.B version
 .RS 4
 Print information about the version, release date, and license of the application.
 .RE
-.PP
 
-.SH "EXAMPLES"
+.SH EXAMPLES
 Initialize the password manager:
 .RS 4
-\fB$ lpass init joursoir@joursoir.net\fR
+.B $ lpass init joursoir@joursoir.net
 .br
 LockPassword initialized for joursoir@joursoir.net
 .br
 .RE
-.PP
 
 Add password in the password manager:
 .RS 4
-\fB$ lpass insert games/chess/user\fR
+.B $ lpass insert games/chess/user
 .br
 Please type your new password: [invisible input]
 .br
@@ -84,73 +84,67 @@ Please type your new password again: [invisible input]
 .br
 Password added successfully for games/chess/user
 .RE
-.PP
 
 Print a list of exists password:
 .RS 4
-\fB$ lpass show\fR
+.B $ lpass show
 .br
 Password Manager
 .br
-|-- banks
+├── banks
 .br
-|   |-- abankpro
+│   ├── abankpro
 .br
-|   |   `-- phone_number
+│   │   └── phone_number
 .br
-|   `-- ubank
+│   └── ubank
 .br
-|       `-- phone_number
+│       └── phone_number
 .br
-`-- games
+└── games
 .br
-    `-- chess
+    └── chess
 .br
-        |-- site.com
+        ├── site.com
 .br
-        `-- user
+        └── user
 .RE
-.PP
 
 Print a list of exists password in some directory:
 .RS 4
-\fB$ lpass show banks\fR
+.B $ lpass show banks
 .br
 Password Manager/banks
 .br
-|-- abankpro
+├── abankpro
 .br
-|   `-- phone_number
+│   └── phone_number
 .br
-`-- ubank
+└── ubank
 .br
-    `-- phone_number
+    └── phone_number
 .RE
-.PP
 
 Show password:
 .RS 4
-\fB$ lpass show games/iko/LordOfNight\fR
+.B $ lpass show games/iko/LordOfNight
 .br
 helloitismypassword123
 .RE
-.PP
 
 Copy password to clipboard:
 .RS 4
-\fB$ lpass show -c games/iko/LordOfNight
+.B $ lpass show -c games/iko/LordOfNight
 .RE
-.PP
 
 Generate password:
 .RS 4
-\fB$ lpass generate bank/sbank/phone_number\fR
+.B $ lpass generate bank/sbank/phone_number
 .br
 Generated password: NsNu:+^Re(cshW
 .br
 Password added successfully for bank/sbank/phone_number
 .RE
-.PP
 
 .SH "COPYING"
 Copyright (C) 2020-2021 Aleksandr D. Goncharov (Joursoir)
