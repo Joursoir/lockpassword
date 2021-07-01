@@ -5,7 +5,8 @@ LockPassword - a password manager.
 
 .SH SYNOPSIS
 .B lpass
-<\fIcommand\fR> [<\fIoptions\fR>]
+.RI < command >
+.RI [< options >]
 
 .SH DESCRIPTION
 .B lpass
@@ -14,43 +15,52 @@ LockPassword - a password manager.
 .SH COMMANDS
 
 .B init
-<\fIgpg-key\fR>
+.RI < gpg-key >
 .RS 4
 Initialize the password manager using the passed \fIgpg-key\fR as the encryption key. This command must be run first before you start working with LockPassword.
 .RE
 
 .B insert
-[\fB-e\fR, \fB--echo\fR] [\fB-c\fR, \fB--copy\fR] [\fB-f\fR, \fB--force\fR] <\fIpassname\fR>
+.RB [ "-e, --echo" ]
+.RB [ "-c, --copy" ]
+.RB [ "-f, --force" ]
+.RI < passname >
 .RS 4
 Add the specified \fIpassname\fR to the password manager. The password will be read interactively using standard input, character display is hidden. The \fB-e, --echo\fR argument enable the show of characters when typing a password; \fB-c, --copy\fR write password to clipboard; \fB-f, --force\fR ignore exist of \fIpassname\fR, overwrites it without prompt.
 .RE
 
 .B show
-[\fB-c\fR, \fB--copy\fR] [\fB-C\fR, \fB--no-color\fR] [<\fIpassname\fR>]
+.RB [ "-c, --copy" ]
+.RB [ "-C, --no-color ]
+.RI < passname >
 .RS 4
 If no \fIpassname\fR is specified, \fIpassname\fR will assign root of password manager tree. If \fIpassname\fR is directory, list names of passwords inside the at \fIpassname\fR. Otherwise decrypt and print a password of \fIpassname\fR. The \fB-c, --copy\fR write password to clipboard; \fB-C, --no-color\fR cancel colorize the output.
 .RE
 
 .B edit
-<\fIpassname\fR>
+.RI < passname >
 .RS 4
 Open the specified \fIpassname\fR in a text editor, waiting for changes. The text editor specified in the environment variable EDITOR or \fBvi\fR(1) is used. Temporary file for password editing locate in tmpfs / ramfs (we expect that it to be mounted at /dev/shm).
 .RE 
 
 .B generate
-[\fB-l\fR, \fB--length=pass-length\fR] [\fB-c\fR, \fB--copy\fR] [\fB-f\fR, \fB--force\fR] <\fIpassname\fR>
+.RB [ "-l, --length" =pass-length]
+.RB [ "-c, --copy" ]
+.RB [ "-f, --force" ]
+.RI < passname >
 .RS 4
 Generate a random password and write it in \fIpassname\fR. The \fB-l, --length = pass-length\fR argument allow you to specify the desired password length. Without this argument, a 14 character password will be generated. \fB-c, --copy\fR write password to clipboard; \fB-f, --force\fR ignore exist of \fIpassname\fR, overwrites it without prompt.
 .RE
 
 .B mv
-[\fB-f\fR, \fB--force\fR] <\fIold-path\fR> <\fInew-path\fR>
+.RB [ "-f, --force" ]
+.RI < old-path "> <" new-path >
 .RS 4
 Move/rename \fIold-path\fR to \fInew-path\fR. \fIold-path\fR must be an exist file, \fInew-path\fR can be a file/directory. The \fB-f, --force\fR argument ignore exist of \fInew-path\fR (if it's a file), overwrites it without prompt.
 .RE
 
 .B rm
-<\fIpassname\fR>
+.RI < passname >
 .RS 4
 Remove the \fIpassname\fR you specified from the password manager. If the directories where your \fIpassname\fR was nested became empty after deletion, then they are also deleted.
 .RE
