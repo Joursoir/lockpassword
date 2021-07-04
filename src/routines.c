@@ -183,6 +183,7 @@ char *gen_password(int length)
 	for(i = 0; i < length; i++) 
 		password[i] = allowed_chars[rand() % NUMBER_ALLOWED_CHARS];
 
+	password[i] = '\0';
 	return password;
 }
 
