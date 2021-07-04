@@ -34,6 +34,8 @@
 	#include "r-x11.h"
 #endif
 
+#define NUMBER_ALLOWED_CHARS (10+26+26+8)
+
 int copy_outside(char *password)
 {
 	#if defined(DISPLAY)
@@ -169,12 +171,17 @@ char *get_input(int minlen, int maxlen)
 
 char *gen_password(int length)
 {
-	int i, min = 33, max = 126;
+	int i;
+	char allowed_chars[NUMBER_ALLOWED_CHARS] = 
+		"abcdefghijklmnoqprstuvwyzx"
+		"ABCDEFGHIJKLMNOQPRSTUYWVZX"
+		"0123456789"
+		"!@#$^&*?";
 	char *password = malloc(sizeof(char) * (length + 1));
 
 	srand(time(NULL));
 	for(i = 0; i < length; i++) 
-		password[i] = min + rand() % (max-min);
+		password[i] = allowed_chars[rand() % NUMBER_ALLOWED_CHARS];
 
 	return password;
 }
