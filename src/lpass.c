@@ -26,6 +26,7 @@
 #include "constants.h"
 #include "exec-cmd.h"
 #include "xstd.h"
+#include "output.h"
 
 struct cmd_struct {
 	const char *cmd;
@@ -68,7 +69,7 @@ static int goto_maindir()
 		result = mkdir(rootdir, S_IRWXU);
 		if(result) {
 			if(errno != EEXIST)
-				errprint_ptr(&retval, 1, "%s", strerror(errno));
+				print_error("Error: %s\n", strerror(errno));
 		}
 		else // try again:
 			retval = chdir(rootdir);
@@ -80,11 +81,13 @@ static int goto_maindir()
 
 int main(int argc, char *argv[])
 {
-	if(!isatty(STDIN_FILENO))
-		errprint_r(1, "Please, use a terminal to run this application\n");
+	if(!isatty(STDIN_FILENO)) {
+		print_error("Please, use a terminal to run this application\n");
+		return 1;
+	}
 
 	if(goto_maindir())
-		errprint_r(1, "%s", strerror(errno));
+		return 1;
 
 	struct cmd_struct *ptr = get_cmd(argv[1]);
 	if(ptr)
