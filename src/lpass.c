@@ -61,15 +61,14 @@ static struct cmd_struct *get_cmd(const char *name)
 
 static int goto_maindir()
 {
-	int result;
 	char *rootdir = xstrcat(getenv("HOME"), LOCKPASS_DIR, "/");
 	int retval = chdir(rootdir);
 	if(retval) // failed
 	{
 		if(errno == ENOENT) {
 			// create main directory:
-			result = mkdir(rootdir, S_IRWXU);
-			if(result && errno != EEXIST) {
+			retval = mkdir(rootdir, S_IRWXU);
+			if(retval && errno != EEXIST) {
 				print_error("Error: %s\n", strerror(errno));
 			} else { // try again:
 				retval = chdir(rootdir);
