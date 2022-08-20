@@ -69,12 +69,11 @@ static int goto_maindir()
 		if(errno == ENOENT) {
 			// create main directory:
 			result = mkdir(rootdir, S_IRWXU);
-			if(result) {
-				if(errno != EEXIST)
-					print_error("Error: %s\n", strerror(errno));
-			}
-			else // try again:
+			if(result && errno != EEXIST) {
+				print_error("Error: %s\n", strerror(errno));
+			} else { // try again:
 				retval = chdir(rootdir);
+			}
 		} else {
 			print_error("Error: %s\n", strerror(errno));
 		}
