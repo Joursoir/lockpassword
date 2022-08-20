@@ -63,14 +63,13 @@ static int goto_maindir()
 {
 	char *rootdir = xstrcat(getenv("HOME"), LOCKPASS_DIR, "/");
 	int retval = chdir(rootdir);
-	if(retval) // failed
+	if(retval)
 	{
 		if(errno == ENOENT) {
-			// create main directory:
 			retval = mkdir(rootdir, S_IRWXU);
 			if(retval && errno != EEXIST) {
 				print_error("Error: %s\n", strerror(errno));
-			} else { // try again:
+			} else {
 				retval = chdir(rootdir);
 			}
 		} else {
