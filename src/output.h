@@ -22,5 +22,6 @@
 #include <stdio.h>
 
 #define print_error(...)	fprintf(stderr, __VA_ARGS__)
+#define usageprint(...)	fprintf(stderr, "Usage: lpass " __VA_ARGS__)
 
 #endif /* LPASS_OUTPUT_H */

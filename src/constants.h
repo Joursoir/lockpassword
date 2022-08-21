@@ -38,12 +38,6 @@
 		*PTR = RETVAL; \
 	} while(0)
 
-#define usageprint(...) \
-	do { \
-		fprintf(stdout, "Usage: lpass " __VA_ARGS__); \
-		return 1; \
-	} while(0)
-
 #ifdef DEBUG
 	#define dbgprint(...) fprintf(stderr, "Debug: " __VA_ARGS__)
 #else

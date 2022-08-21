@@ -32,14 +32,17 @@
 #include "routines.h"
 #include "exec-cmd.h"
 #include "tree.h"
+#include "output.h"
 
 int cmd_init(int argc, char *argv[])
 {
 	const char description[] = "init gpg-key\n";
 	int retval = 0, result;
 	char *gpg_key = argv[2];
-	if(gpg_key == NULL)
+	if(gpg_key == NULL) {
 		usageprint("%s", description);
+		return 1;
+	}
 
 	// create .gpg-key in storage
 	FILE *filekey = fopen(GPGKEY_FILE, "w");	
@@ -73,13 +76,17 @@ int cmd_insert(int argc, char *argv[])
 			case 'e': { flag_echo = 1; break; }
 			case 'f': { flag_force = 1; break; }
 			case 'c': { flag_copy = 1; break; }
-			default: usageprint("%s", description);
+			default:
+				usageprint("%s", description);
+				return 1;
 		}
 	}
 
 	char *path = argv[optind];
-	if(path == NULL)
+	if(path == NULL) {
 		usageprint("%s", description);
+		return 1;
+	}
 
 	result = check_sneaky_paths(path);
 	if(result)
@@ -156,8 +163,10 @@ int cmd_edit(int argc, char *argv[])
 	char path_tmpfile[] = "/dev/shm/lpass.XXXXXX";
 	char *editor, *password;
 	char *path = argv[1];
-	if(!path)
+	if(!path) {
 		usageprint("%s", description);
+		return 1;
+	}
 
 	result = check_sneaky_paths(path);
 	if(result)
@@ -255,13 +264,17 @@ int cmd_generate(int argc, char *argv[])
 			case 'l': { pass_length = atoi(optarg); break; }
 			case 'f': { flag_force = 1; break; }
 			case 'c': { flag_copy = 1; break; }
-			default: usageprint("%s", description);
+			default: 
+				usageprint("%s", description);
+				return 1;
 		}
 	}
 
 	char *path = argv[optind];
-	if(path == NULL)
+	if(path == NULL) {
 		usageprint("%s", description);
+		return 1;
+	}
 
 	if(pass_length < minlen_pass || pass_length > maxlen_pass)
 		errprint_r(1, "You typed an incorrect length\n");
@@ -303,8 +316,10 @@ int cmd_remove(int argc, char *argv[])
 	const char description[] = "rm passname\n";
 	int result;
 	char *path = argv[1];
-	if(!path)
+	if(!path) {
 		usageprint("%s", description);
+		return 1;
+	}
 
 	result = check_sneaky_paths(path);
 	if(result)
@@ -340,12 +355,16 @@ int cmd_move(int argc, char *argv[])
 	while((result = getopt_long(argc, argv, "f", long_options, NULL)) != -1) {
 		switch(result) {
 			case 'f': { flag_force = 1; break; }
-			default: usageprint("%s", description);
+			default: 
+				usageprint("%s", description);
+				return 1;
 		}
 	}
 
-	if(!argv[optind] || !argv[optind+1])
+	if(!argv[optind] || !argv[optind+1]) {
 		usageprint("%s", description);
+		return 1;
+	}
 
 	char *old_path = argv[optind];
 	char *new_path = argv[optind+1];
@@ -434,7 +453,9 @@ int cmd_showtree(int argc, char *argv[])
 		switch(result) {
 			case 'c': { flag_copy = 1; break; }
 			case 'C': { flag_color = 0; break; }
-			default: usageprint("%s", description);
+			default:
+				usageprint("%s", description);
+				return 1;
 		}
 	}
 
