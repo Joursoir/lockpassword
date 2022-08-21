@@ -40,7 +40,7 @@ int cmd_init(int argc, char *argv[])
 	int retval = 0, result;
 	char *gpg_key = argv[2];
 	if(gpg_key == NULL) {
-		usageprint("%s", description);
+		print_usage("%s", description);
 		return 1;
 	}
 
@@ -77,14 +77,14 @@ int cmd_insert(int argc, char *argv[])
 			case 'f': { flag_force = 1; break; }
 			case 'c': { flag_copy = 1; break; }
 			default:
-				usageprint("%s", description);
+				print_usage("%s", description);
 				return 1;
 		}
 	}
 
 	char *path = argv[optind];
 	if(path == NULL) {
-		usageprint("%s", description);
+		print_usage("%s", description);
 		return 1;
 	}
 
@@ -164,7 +164,7 @@ int cmd_edit(int argc, char *argv[])
 	char *editor, *password;
 	char *path = argv[1];
 	if(!path) {
-		usageprint("%s", description);
+		print_usage("%s", description);
 		return 1;
 	}
 
@@ -265,14 +265,14 @@ int cmd_generate(int argc, char *argv[])
 			case 'f': { flag_force = 1; break; }
 			case 'c': { flag_copy = 1; break; }
 			default: 
-				usageprint("%s", description);
+				print_usage("%s", description);
 				return 1;
 		}
 	}
 
 	char *path = argv[optind];
 	if(path == NULL) {
-		usageprint("%s", description);
+		print_usage("%s", description);
 		return 1;
 	}
 
@@ -317,7 +317,7 @@ int cmd_remove(int argc, char *argv[])
 	int result;
 	char *path = argv[1];
 	if(!path) {
-		usageprint("%s", description);
+		print_usage("%s", description);
 		return 1;
 	}
 
@@ -356,13 +356,13 @@ int cmd_move(int argc, char *argv[])
 		switch(result) {
 			case 'f': { flag_force = 1; break; }
 			default: 
-				usageprint("%s", description);
+				print_usage("%s", description);
 				return 1;
 		}
 	}
 
 	if(!argv[optind] || !argv[optind+1]) {
-		usageprint("%s", description);
+		print_usage("%s", description);
 		return 1;
 	}
 
@@ -454,7 +454,7 @@ int cmd_showtree(int argc, char *argv[])
 			case 'c': { flag_copy = 1; break; }
 			case 'C': { flag_color = 0; break; }
 			default:
-				usageprint("%s", description);
+				print_usage("%s", description);
 				return 1;
 		}
 	}
