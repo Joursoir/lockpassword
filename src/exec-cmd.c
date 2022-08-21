@@ -34,13 +34,15 @@
 #include "tree.h"
 #include "output.h"
 
+#define print_options(msg)	print_usage("%s", msg)
+
 int cmd_init(int argc, char *argv[])
 {
 	const char description[] = "init gpg-key\n";
 	int retval = 0, result;
 	char *gpg_key = argv[2];
 	if(gpg_key == NULL) {
-		print_usage("%s", description);
+		print_options(description);
 		return 1;
 	}
 
@@ -77,14 +79,14 @@ int cmd_insert(int argc, char *argv[])
 			case 'f': { flag_force = 1; break; }
 			case 'c': { flag_copy = 1; break; }
 			default:
-				print_usage("%s", description);
+				print_options(description);
 				return 1;
 		}
 	}
 
 	char *path = argv[optind];
 	if(path == NULL) {
-		print_usage("%s", description);
+		print_options(description);
 		return 1;
 	}
 
@@ -164,7 +166,7 @@ int cmd_edit(int argc, char *argv[])
 	char *editor, *password;
 	char *path = argv[1];
 	if(!path) {
-		print_usage("%s", description);
+		print_options(description);
 		return 1;
 	}
 
@@ -265,14 +267,14 @@ int cmd_generate(int argc, char *argv[])
 			case 'f': { flag_force = 1; break; }
 			case 'c': { flag_copy = 1; break; }
 			default: 
-				print_usage("%s", description);
+				print_options(description);
 				return 1;
 		}
 	}
 
 	char *path = argv[optind];
 	if(path == NULL) {
-		print_usage("%s", description);
+		print_options(description);
 		return 1;
 	}
 
@@ -317,7 +319,7 @@ int cmd_remove(int argc, char *argv[])
 	int result;
 	char *path = argv[1];
 	if(!path) {
-		print_usage("%s", description);
+		print_options(description);
 		return 1;
 	}
 
@@ -356,13 +358,13 @@ int cmd_move(int argc, char *argv[])
 		switch(result) {
 			case 'f': { flag_force = 1; break; }
 			default: 
-				print_usage("%s", description);
+				print_options(description);
 				return 1;
 		}
 	}
 
 	if(!argv[optind] || !argv[optind+1]) {
-		print_usage("%s", description);
+		print_options(description);
 		return 1;
 	}
 
@@ -454,7 +456,7 @@ int cmd_showtree(int argc, char *argv[])
 			case 'c': { flag_copy = 1; break; }
 			case 'C': { flag_color = 0; break; }
 			default:
-				print_usage("%s", description);
+				print_options(description);
 				return 1;
 		}
 	}
