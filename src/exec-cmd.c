@@ -48,14 +48,18 @@ int cmd_init(int argc, char *argv[])
 
 	// create .gpg-key in storage
 	FILE *filekey = fopen(GPGKEY_FILE, "w");	
-	if(!filekey)
-		errprint_r(1, "%s\n", strerror(errno));
+	if(!filekey) {
+		print_error("Error: %s\n", strerror(errno));
+		return 1;
+	}
 
 	result = fputs(gpg_key, filekey);
-	if(result == EOF)
-		errprint_ptr(&retval, 1, "%s\n", strerror(errno));
-	else
+	if(result == EOF) {
+		print_error("Error: %s\n", strerror(errno));
+		retval = 1;
+	} else {
 		printf("LockPassword initialized for %s\n", gpg_key);
+	}
 
 	fclose(filekey);
 	return retval;
