@@ -95,8 +95,10 @@ int cmd_insert(int argc, char *argv[])
 	}
 
 	result = check_sneaky_paths(path);
-	if(result)
-		errprint_r(1, "You have used forbidden paths\n");
+	if(result) {
+		print_error("Error: You have used forbidden paths\n");
+		return 1;
+	}
 
 	if(file_exist(path) == F_ISFILE) {
 		if(!flag_force) {
@@ -106,53 +108,54 @@ int cmd_insert(int argc, char *argv[])
 	}
 
 	char *f_pass, *s_pass;
-	do { // START DO
+	if(!flag_echo) {
+		visible_enter(0);
 
-		if(!flag_echo) {
-			visible_enter(0);
-
-			printf("Type your password: ");
-			f_pass = get_input(minlen_pass, maxlen_pass);
-			printf("\n");
-			if(f_pass == NULL) {
-				errprint_ptr(&retval, 1, "Incorrect password\n");
-				break;
-			}
-
-			printf("Type your password again: ");
-			s_pass = get_input(minlen_pass, maxlen_pass);
-			printf("\n");
-			if(s_pass == NULL) {
-				errprint_ptr(&retval, 1, "Incorrect password\n");
-				break;
-			}
-
-			if(strcmp(f_pass, s_pass) != 0) {
-				errprint_ptr(&retval, 1, "Password do not match\n");
-				break;
-			}
-		}
-		else {
-			printf("Type your password: ");
-			f_pass = get_input(minlen_pass, maxlen_pass);
-			if(f_pass == NULL) {
-				errprint_ptr(&retval, 1, "Incorrect password\n");
-				break;
-			}
+		printf("Type your password: ");
+		f_pass = get_input(minlen_pass, maxlen_pass);
+		printf("\n");
+		if(f_pass == NULL) {
+			print_error("Error: Incorrect password\n");
+			retval = 1;
+			goto out;
 		}
 
-		result = insert_pass(path, f_pass);
-		if(result) {
-			errprint_ptr(&retval, 1, "Can't add password to LockPassword\n");
-			break;
+		printf("Type your password again: ");
+		s_pass = get_input(minlen_pass, maxlen_pass);
+		printf("\n");
+		if(s_pass == NULL) {
+			print_error("Error: Incorrect password\n");
+			retval = 1;
+			goto out;
 		}
-		if(flag_copy)
-			copy_outside(f_pass);
 
-		printf("Password added successfully for %s\n", path);
+		if(strcmp(f_pass, s_pass) != 0) {
+			print_error("Error: Password do not match\n");
+			retval = 1;
+			goto out;
+		}
+	}
+	else {
+		printf("Type your password: ");
+		f_pass = get_input(minlen_pass, maxlen_pass);
+		if(f_pass == NULL) {
+			print_error("Error: Incorrect password\n");
+			return 1;
+		}
+	}
 
-	} while(0); // END DO
+	result = insert_pass(path, f_pass);
+	if(result) {
+		print_error("Error: Can't add password to LockPassword\n");
+		retval = 1;
+		goto out;
+	}
+	if(flag_copy)
+		copy_outside(f_pass);
 
+	printf("Password added successfully for %s\n", path);
+
+out:
 	visible_enter(1);
 	if(f_pass)
 		free(f_pass);
