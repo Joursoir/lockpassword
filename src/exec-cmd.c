@@ -107,7 +107,7 @@ int cmd_insert(int argc, char *argv[])
 		}
 	}
 
-	char *f_pass, *s_pass;
+	char *f_pass = NULL, *s_pass = NULL;
 	if(!flag_echo) {
 		visible_enter(0);
 
@@ -157,10 +157,8 @@ int cmd_insert(int argc, char *argv[])
 
 out:
 	visible_enter(1);
-	if(f_pass)
-		free(f_pass);
-	if(s_pass)
-		free(s_pass);
+	free(f_pass);
+	free(s_pass);
 	return retval;
 }
 
