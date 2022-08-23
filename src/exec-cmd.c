@@ -351,20 +351,28 @@ int cmd_remove(int argc, char *argv[])
 	}
 
 	result = check_sneaky_paths(path);
-	if(result)
-		errprint_r(1, "You have used forbidden paths\n");
+	if(result) {
+		print_error("Error: You have used forbidden paths\n");
+		return 1;
+	}
 
 	result = file_exist(path);
-	if(result == F_NOEXIST)
-		errprint_r(1, "No such file exists\n");
+	if(result == F_NOEXIST) {
+		print_error("Error: No such file exists\n");
+		return 1;
+	}
 	if(result == F_ISDIR) {
-		if(count_dir_entries(path) != 0)
-			errprint_r(1, "Directory not empty\n");
+		if(count_dir_entries(path) != 0) {
+			print_error("Error: Directory not empty\n");
+			return 1;
+		}
 	}
 
 	result = remove(path);
-	if(result)
-		errprint_r(1, "%s\n", strerror(errno));
+	if(result) {
+		print_error("Error: %s\n", strerror(errno));
+		return 1;
+	}
 	return 0;
 }
 
