@@ -176,27 +176,36 @@ int cmd_edit(int argc, char *argv[])
 	}
 
 	result = check_sneaky_paths(path);
-	if(result)
-		errprint_r(1, "You have used forbidden paths\n");
+	if(result) {
+		print_error("Error: You have used forbidden paths\n");
+		return 1;
+	}
 
 	result = file_exist(path);
-	if(result == F_NOEXIST)
-		errprint_r(1, "No such file exists\n");
-	if(result == F_ISDIR)
-		errprint_r(1, "It's a directory\n");
+	if(result == F_NOEXIST) {
+		print_error("Error: No such file exists\n");
+		return 1;
+	}
+	if(result == F_ISDIR) {
+		print_error("Error: It's a directory\n");
+		return 1;
+	}
 
 	editor = getenv("EDITOR");
 	if(!editor)
 		editor = STD_TEXT_EDITOR;
 
 	password = get_password(path);
-	if(password == NULL)
-		errprint_r(1, "Decrypt password failed\n");
+	if(password == NULL) {
+		print_error("Error: Decrypt password failed\n");
+		return 1;
+	}
 
 	fd = mkstemp(path_tmpfile);
 	if(fd == -1) {
+		print_error("Error: Create temporary file failed: %s\n", strerror(errno));
 		free(password);
-		errprint_r(1, "Create temporary file failed: %s\n", strerror(errno));
+		return 1;
 	}
 	dbgprint("tmp file: %s\n", path_tmpfile);
 
@@ -205,16 +214,18 @@ int cmd_edit(int argc, char *argv[])
 	free(password);
 	close(fd);
 	if(result != len_pass) {
+		print_error("Error: Write password to temporary file failed\n");
 		unlink(path_tmpfile);
-		errprint_r(1, "Write password to temporary file failed\n");
+		return 1;
 	}
 
 	// fork for text editor
 	char *editor_arg[] = {editor, path_tmpfile, NULL};
 	pid = fork();
 	if(pid == -1) {
+		print_error("Error: Start %s failed: %s\n", editor, strerror(errno));
 		unlink(path_tmpfile);
-		errprint_r(1, "Start %s failed: %s\n", editor, strerror(errno));
+		return 1;
 	}
 	if(pid == 0) { /* new process */
 		execvp(editor, editor_arg);
@@ -225,8 +236,9 @@ int cmd_edit(int argc, char *argv[])
 
 	fd = open(path_tmpfile, O_RDONLY);
 	if(fd == -1) {
+		print_error("Error: Open temporary file failed: %s\n", strerror(errno));
 		unlink(path_tmpfile);
-		errprint_r(1, "Open temporary file failed: %s\n", strerror(errno));
+		return 1;
 	}
 
 	password = malloc(sizeof(char) * (maxlen_pass + 1));
@@ -235,11 +247,12 @@ int cmd_edit(int argc, char *argv[])
 	close(fd);
 	unlink(path_tmpfile);
 	if(len_pass < minlen_pass) {
-		free(password);
 		if(len_pass == -1)
-			errprint_r(1, "Read temporary file failed: %s\n", strerror(save_errno));
+			print_error("Error: Read temporary file failed: %s\n", strerror(save_errno));
 		else
-			errprint_r(1, "Min. password length is %d\n", minlen_pass);
+			print_error("Error: Min. password length is %d\n", minlen_pass);
+		free(password);
+		return 1;
 	}
 	password[len_pass-1] = '\0';
 	dbgprint("new pass: %s\n", password);
@@ -247,8 +260,10 @@ int cmd_edit(int argc, char *argv[])
 	// encrypt
 	result = insert_pass(path, password);
 	free(password);
-	if(result)
-		errprint_r(1, "Can't add password to LockPassword\n");
+	if(result) {
+		print_error("Error: Can't add password to LockPassword\n");
+		return 1;
+	}
 
 	return 0;
 }
