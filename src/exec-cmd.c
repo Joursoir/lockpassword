@@ -298,12 +298,16 @@ int cmd_generate(int argc, char *argv[])
 		return 1;
 	}
 
-	if(pass_length < minlen_pass || pass_length > maxlen_pass)
-		errprint_r(1, "You typed an incorrect length\n");
+	if(pass_length < minlen_pass || pass_length > maxlen_pass) {
+		print_error("Error: You typed an incorrect length\n");
+		return 1;
+	}
 
 	result = check_sneaky_paths(path);
-	if(result)
-		errprint_r(1, "You have used forbidden paths\n");
+	if(result) {
+		print_error("Error: You have used forbidden paths\n");
+		return 1;
+	}
 
 	result = file_exist(path);
 	if(result == F_ISFILE) {
@@ -312,16 +316,19 @@ int cmd_generate(int argc, char *argv[])
 				return 1;
 		}
 	}
-	else if(result == F_ISDIR)
-		errprint_r(1, "You can't generate password for directory\n");
+	else if(result == F_ISDIR) {
+		print_error("Error: You can't generate password for directory\n");
+		return 1;
+	}
 
 	// generate password 
 	char *g_pass = gen_password(pass_length);
 
 	result = insert_pass(path, g_pass);
 	if(result) {
+		print_error("Error: Can't add password to LockPassword\n");
 		free(g_pass);
-		errprint_r(1, "Can't add password to LockPassword\n");
+		return 1;
 	}
 
 	if(flag_copy)
