@@ -487,7 +487,6 @@ int cmd_showtree(int argc, char *argv[])
 	const char description[] = "[-cC] [passname]\n";
 	int flag_copy = 0, flag_color = 1;
 	int retval = 0, result;
-	char *path;
 	const struct option long_options[] = {
 		{"copy", no_argument, NULL, 'c'},
 		{"no-color", no_argument, NULL, 'C'},
@@ -504,18 +503,14 @@ int cmd_showtree(int argc, char *argv[])
 		}
 	}
 
+	const char *path = ".";
 	if(argv[optind]) {
 		result = check_sneaky_paths(argv[optind]);
 		if(result) {
 			print_error("Error: You have used forbidden paths\n");
 			return 1;
 		}
-		path = malloc(sizeof(char) * (strlen(argv[optind]) + 1));
-		strcpy(path, argv[optind]);
-	}
-	else {
-		path = malloc(sizeof(char) * 2);
-		strcpy(path, ".");
+		path = argv[optind];
 	}
 
 	result = file_exist(path);
@@ -523,8 +518,7 @@ int cmd_showtree(int argc, char *argv[])
 	{
 		if(flag_copy) {
 			print_error("Error: You must type a passname, not a directory\n");
-			retval = 1;
-			goto out;
+			return 1;
 		}
 
 		if(strcmp(path, ".") == 0)
@@ -538,8 +532,7 @@ int cmd_showtree(int argc, char *argv[])
 		char *pass = get_password(path);
 		if(!pass) {
 			print_error("Error: Decrypt password failed\n");
-			retval = 1;
-			goto out;
+			return 1;
 		}
 
 		if(flag_copy)
@@ -554,7 +547,5 @@ int cmd_showtree(int argc, char *argv[])
 		retval = 1;
 	}
 
-out:
-	free(path);
 	return retval;
 }
