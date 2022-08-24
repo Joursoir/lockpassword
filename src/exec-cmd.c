@@ -506,8 +506,10 @@ int cmd_showtree(int argc, char *argv[])
 
 	if(argv[optind]) {
 		result = check_sneaky_paths(argv[optind]);
-		if(result)
-			errprint_r(1, "You have used forbidden paths\n");
+		if(result) {
+			print_error("Error: You have used forbidden paths\n");
+			return 1;
+		}
 		path = malloc(sizeof(char) * (strlen(argv[optind]) + 1));
 		strcpy(path, argv[optind]);
 	}
@@ -516,44 +518,43 @@ int cmd_showtree(int argc, char *argv[])
 		strcpy(path, ".");
 	}
 
-	do { // START_DO
-
-		result = file_exist(path);
-		if(result == F_ISDIR)
-		{
-			if(flag_copy) {
-				errprint_ptr(&retval, 1,
-					"You must type a passname, not a directory\n");
-				break;
-			}
-
-			if(strcmp(path, ".") == 0)
-				printf("Password Manager\n");
-			else
-				printf("Password Manager/%s\n", path);
-			tree(path, "", flag_color);
+	result = file_exist(path);
+	if(result == F_ISDIR)
+	{
+		if(flag_copy) {
+			print_error("Error: You must type a passname, not a directory\n");
+			retval = 1;
+			goto out;
 		}
-		else if(result == F_ISFILE)
-		{
-			char *pass = get_password(path);
-			if(!pass) {
-				errprint_ptr(&retval, 1, "Decrypt password failed\n");
-				break;
-			}
 
-			if(flag_copy)
-				copy_outside(pass);
-			else
-				printf("%s\n", pass);
-
-			free(pass);
-		}
+		if(strcmp(path, ".") == 0)
+			printf("Password Manager\n");
 		else
-			errprint_ptr(&retval, 1, 
-				"This path is not in the password storage\n");
+			printf("Password Manager/%s\n", path);
+		tree(path, "", flag_color);
+	}
+	else if(result == F_ISFILE)
+	{
+		char *pass = get_password(path);
+		if(!pass) {
+			print_error("Error: Decrypt password failed\n");
+			retval = 1;
+			goto out;
+		}
 
-	} while(0); // END_DO
+		if(flag_copy)
+			copy_outside(pass);
+		else
+			printf("%s\n", pass);
 
+		free(pass);
+	}
+	else {
+		print_error("Error: This path is not in the password storage\n");
+		retval = 1;
+	}
+
+out:
 	free(path);
 	return retval;
 }
