@@ -409,15 +409,21 @@ int cmd_move(int argc, char *argv[])
 	dbgprint("new-path = %s\n", new_path);
 
 	result = check_sneaky_paths(old_path);
-	if(result)
-		errprint_r(1, "You have used forbidden paths\n");
+	if(result) {
+		print_error("Error: You have used forbidden paths\n");
+		return 1;
+	}
 	result = file_exist(old_path);
-	if(result == F_NOEXIST)
-		errprint_r(1, "No such file exists\n");
+	if(result == F_NOEXIST) {
+		print_error("Error: No such file exists\n");
+		return 1;
+	}
 
 	result = check_sneaky_paths(new_path);
-	if(result)
-		errprint_r(1, "You have used forbidden paths\n");
+	if(result) {
+		print_error("Error: You have used forbidden paths\n");
+		return 1;
+	}
 	result = file_exist(new_path);
 	if(result != F_NOEXIST) {
 		if(!flag_force) {
@@ -427,8 +433,10 @@ int cmd_move(int argc, char *argv[])
 	}
 
 	result = rename(old_path, new_path);
-	if(result)
-		errprint_r(1, "%s\n", strerror(errno));
+	if(result) {
+		print_error("Error: %s\n", strerror(errno));
+		return 1;
+	}
 	return 0;
 }
 
