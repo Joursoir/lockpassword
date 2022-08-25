@@ -47,24 +47,24 @@ int copy_outside(char *password)
 		if(pid == 0) /* new process */
 			exit(run_clipboard(password));
 		return 0;
-	#endif
+	#else
+		if(getenv("WAYLAND_DISPLAY") != NULL) {
+			char * const wl_copy[] = {"wl-copy", password, NULL};
+			int pid;
+			pid = fork();
+			if(pid == -1)
+				errprint_r(1, "Wayland fork() failed\n");
+			if(pid == 0) { /* new process */
+				execvp("wl-copy", wl_copy);
+				perror("wl-copy");
+				exit(1);
+			}
 
-	if(getenv("WAYLAND_DISPLAY") != NULL) {
-		char * const wl_copy[] = {"wl-copy", password, NULL};
-		int pid;
-		pid = fork();
-		if(pid == -1)
-			errprint_r(1, "Wayland fork() failed\n");
-		if(pid == 0) { /* new process */
-			execvp("wl-copy", wl_copy);
-			perror("wl-copy");
-			exit(1);
+			return 0;
 		}
 
-		return 0;
-	}
-
-	errprint_r(1, "You didn't have x11 or wayland when app builded\n");
+		errprint_r(1, "You didn't have x11 or wayland when app builded\n");
+	#endif
 }
 
 int check_sneaky_paths(const char *path)
