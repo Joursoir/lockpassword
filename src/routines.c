@@ -33,6 +33,7 @@
 #if defined(DISPLAY)
 	#include "r-x11.h"
 #endif
+#include "output.h"
 
 #define NUMBER_ALLOWED_CHARS (10+26+26+8)
 
@@ -72,8 +73,10 @@ int check_sneaky_paths(const char *path)
 	int length = strlen(path), i;
 	for(i = 1; i < length; i++)
 	{
-		if(path[i-1] == '.' && path[i] == '.')
+		if(path[i-1] == '.' && path[i] == '.') {
+			print_error("Error: You have used forbidden paths\n");
 			return 1;
+		}
 	}
 	return 0;
 }

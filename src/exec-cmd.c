@@ -95,10 +95,8 @@ int cmd_insert(int argc, char *argv[])
 	}
 
 	result = check_sneaky_paths(path);
-	if(result) {
-		print_error("Error: You have used forbidden paths\n");
+	if(result)
 		return 1;
-	}
 
 	if(file_exist(path) == F_ISFILE) {
 		if(!flag_force) {
@@ -176,10 +174,8 @@ int cmd_edit(int argc, char *argv[])
 	}
 
 	result = check_sneaky_paths(path);
-	if(result) {
-		print_error("Error: You have used forbidden paths\n");
+	if(result)
 		return 1;
-	}
 
 	result = file_exist(path);
 	if(result == F_NOEXIST) {
@@ -304,10 +300,8 @@ int cmd_generate(int argc, char *argv[])
 	}
 
 	result = check_sneaky_paths(path);
-	if(result) {
-		print_error("Error: You have used forbidden paths\n");
+	if(result)
 		return 1;
-	}
 
 	result = file_exist(path);
 	if(result == F_ISFILE) {
@@ -351,10 +345,8 @@ int cmd_remove(int argc, char *argv[])
 	}
 
 	result = check_sneaky_paths(path);
-	if(result) {
-		print_error("Error: You have used forbidden paths\n");
+	if(result)
 		return 1;
-	}
 
 	result = file_exist(path);
 	if(result == F_NOEXIST) {
@@ -409,10 +401,9 @@ int cmd_move(int argc, char *argv[])
 	dbgprint("new-path = %s\n", new_path);
 
 	result = check_sneaky_paths(old_path);
-	if(result) {
-		print_error("Error: You have used forbidden paths\n");
+	if(result)
 		return 1;
-	}
+
 	result = file_exist(old_path);
 	if(result == F_NOEXIST) {
 		print_error("Error: No such file exists\n");
@@ -420,10 +411,9 @@ int cmd_move(int argc, char *argv[])
 	}
 
 	result = check_sneaky_paths(new_path);
-	if(result) {
-		print_error("Error: You have used forbidden paths\n");
+	if(result)
 		return 1;
-	}
+
 	result = file_exist(new_path);
 	if(result != F_NOEXIST) {
 		if(!flag_force) {
@@ -506,10 +496,8 @@ int cmd_showtree(int argc, char *argv[])
 	const char *path = ".";
 	if(argv[optind]) {
 		result = check_sneaky_paths(argv[optind]);
-		if(result) {
-			print_error("Error: You have used forbidden paths\n");
+		if(result)
 			return 1;
-		}
 		path = argv[optind];
 	}
 
