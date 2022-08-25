@@ -67,14 +67,13 @@ int copy_outside(char *password)
 	errprint_r(1, "You didn't have x11 or wayland when app builded\n");
 }
 
-/* check two dot in path */
 int check_sneaky_paths(const char *path)
 {
 	int length = strlen(path), i;
 	for(i = 1; i < length; i++)
 	{
 		if(path[i-1] == '.' && path[i] == '.') {
-			print_error("Error: You have used forbidden paths\n");
+			print_error("Error: A double dot is found in the path.\n");
 			return 1;
 		}
 	}
