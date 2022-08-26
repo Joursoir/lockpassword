@@ -163,8 +163,9 @@ char *get_input(int minlen, int maxlen)
 	int len;
 
 	if(fgets(pass, maxlen + 1, stdin) == NULL) {
+		print_error("Error: %s\n", strerror(errno));
 		free(pass);
-		errprint_ptr(&pass, NULL, "%s\n", strerror(errno));
+		return NULL;
 	}
 
 	len = strlen(pass);
