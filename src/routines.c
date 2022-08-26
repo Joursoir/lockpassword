@@ -42,8 +42,10 @@ int copy_outside(char *password)
 	#if defined(DISPLAY)
 		int pid;
 		pid = fork();
-		if(pid == -1)
-			errprint_r(1, "X11 fork() failed\n");
+		if(pid == -1) {
+			print_error("Error: X11 fork() failed\n");
+			return 1;
+		}
 		if(pid == 0) /* new process */
 			exit(run_clipboard(password));
 		return 0;
@@ -52,8 +54,10 @@ int copy_outside(char *password)
 			char * const wl_copy[] = {"wl-copy", password, NULL};
 			int pid;
 			pid = fork();
-			if(pid == -1)
-				errprint_r(1, "Wayland fork() failed\n");
+			if(pid == -1) {
+				print_error("Error: Wayland fork() failed\n");
+				return 1;
+			}
 			if(pid == 0) { /* new process */
 				execvp("wl-copy", wl_copy);
 				perror("wl-copy");
@@ -63,7 +67,8 @@ int copy_outside(char *password)
 			return 0;
 		}
 
-		errprint_r(1, "You didn't have x11 or wayland when app builded\n");
+		print_error("Error: You didn't have x11 or wayland when app builded\n");
+		return 1;
 	#endif
 }
 
