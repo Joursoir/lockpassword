@@ -92,14 +92,17 @@ char *get_pubkey()
 	FILE *fileGPG = fopen(".gpg-key", "r");
 	if(fileGPG == NULL) {
 		if(errno == ENOENT)
-			errprint_r(NULL, "No GPG key exists. Use \"lpass init\"\n");
-		errprint_r(NULL, "%s\n", strerror(errno));
+			print_error("Error: No GPG key exists. Use \"lpass init\"\n");
+		else
+			print_error("Error: %s\n", strerror(errno));
+		return NULL;
 	}
 
 	pubkey = malloc(sizeof(char) * (maxlen_fingerprint + 1));
 	if(fgets(pubkey, maxlen_fingerprint + 1, fileGPG) == NULL) {
+		print_error("Error: %s\n", strerror(errno));
 		free(pubkey);
-		errprint_ptr(&pubkey, NULL, "%s\n", strerror(errno));
+		pubkey = NULL;
 	}
 
 	fclose(fileGPG);
