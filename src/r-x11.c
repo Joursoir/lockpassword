@@ -23,6 +23,7 @@
 #include <X11/Xlib.h>
 
 #include "constants.h"
+#include "output.h"
 
 static Atom X_utf8;
 
@@ -75,8 +76,10 @@ int run_clipboard(const char *data)
 	XSelectionRequestEvent *sev;
 
 	dpy = XOpenDisplay(NULL); // means use env $DISPLAY
-	if(!dpy)
-		errprint_r(1, "Open X display failed\n");
+	if(!dpy) {
+		print_error("Error: Open X display failed\n");
+		return 1;
+	}
 
 	screen = DefaultScreen(dpy);
 	root = RootWindow(dpy, screen);
