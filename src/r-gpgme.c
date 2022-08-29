@@ -27,6 +27,8 @@
 #include "r-gpgme.h"
 #include "output.h"
 
+#define print_gpgme_error(err)	print_error("%s: %s\n", gpgme_strsource(err), gpgme_strerror(err))
+
 static void init_gpgme()
 {
 	/* The GPGME library communicates with child processes (the 
@@ -60,7 +62,7 @@ static int init_ctx(gpgme_ctx_t ctx, gpgme_protocol_t protocol)
 
 	return 0;
 error:
-	print_error("%s: %s\n", gpgme_strsource(err), gpgme_strerror(err));
+	print_gpgme_error(err);
 	return 1; 
 }
 
@@ -84,7 +86,7 @@ static int loop_read(const char *path, gpgme_data_t dh)
 out:
 	if (ret != 0) {
 		gpgme_error_t err = gpgme_err_code_from_errno(errno);
-		print_error("%s: %s\n", gpgme_strsource(err), gpgme_strerror(err));
+		print_gpgme_error(err);
 	}
 	fclose(f);
 	return ret;
@@ -134,7 +136,7 @@ out_release_context:
 	gpgme_release(ctx);
 out:
 	if (err != GPG_ERR_NO_ERROR) {
-		print_error("%s: %s\n", gpgme_strsource(err), gpgme_strerror(err));
+		print_gpgme_error(err);
 	}
 	return ret;
 }
@@ -183,7 +185,7 @@ out_release_context:
 	gpgme_release(ctx);
 out:
 	if (err != GPG_ERR_NO_ERROR) {
-		print_error("%s: %s\n", gpgme_strsource(err), gpgme_strerror(err));
+		print_gpgme_error(err);
 	}
 	return data;
 }
