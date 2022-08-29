@@ -25,6 +25,7 @@
 
 #include "constants.h"
 #include "r-gpgme.h"
+#include "output.h"
 
 #ifdef DEBUG
 	#define ret_if_err(ret, err) \
@@ -68,12 +69,20 @@ static int init_ctx(gpgme_ctx_t ctx, gpgme_protocol_t protocol)
 {
 	gpgme_error_t err;
 	err = gpgme_engine_check_version(protocol);
-	ret_if_err(1, err);
+	if(err != GPG_ERR_NO_ERROR)
+		goto error;
+
 	err = gpgme_set_protocol(ctx, protocol);
-	ret_if_err(1, err);
+	if(err != GPG_ERR_NO_ERROR)
+		goto error;
+
 	/* output be ASCII armored */
 	gpgme_set_armor(ctx, 1);
+
 	return 0;
+error:
+	print_error("%s: %s\n", gpgme_strsource(err), gpgme_strerror(err));
+	return 1; 
 }
 
 static int loop_read(const char *path, gpgme_data_t dh)
@@ -86,19 +95,20 @@ static int loop_read(const char *path, gpgme_data_t dh)
 		return 1;
 
 	ret = gpgme_data_seek(dh, 0, SEEK_SET);
-	if(ret) {
-		fclose(f);
-		ret_if_err(1, gpgme_err_code_from_errno(errno));
-	}
-	while((ret = gpgme_data_read(dh, buf, maxlen_pass)) > 0)
+	if (ret)
+		goto out;
+
+	while((ret = gpgme_data_read(dh, buf, maxlen_pass)) > 0) {
 		fwrite(buf, ret, 1, f);
-	if(ret < 0) {
-		fclose(f);
-		ret_if_err(1, gpgme_err_code_from_errno(errno));
 	}
 
+out:
+	if (ret != 0) {
+		gpgme_error_t err = gpgme_err_code_from_errno(errno);
+		print_error("%s: %s\n", gpgme_strsource(err), gpgme_strerror(err));
+	}
 	fclose(f);
-	return 0;
+	return ret;
 }
 
 int ecnrypt_data(const char *path, const char *data, const char *pubkey)
@@ -107,35 +117,47 @@ int ecnrypt_data(const char *path, const char *data, const char *pubkey)
 	gpgme_ctx_t ctx;
 	gpgme_data_t plain, cipher;
 	gpgme_key_t key[] = { NULL, NULL };
-	init_gpgme();
+	int ret = 1;
 
+	init_gpgme();
 	err = gpgme_new(&ctx);
-	ret_if_err(1, err);
+	if (err != GPG_ERR_NO_ERROR)
+		goto out;
 	err = init_ctx(ctx, GPGME_PROTOCOL_OPENPGP);
-	ret_if_err(1, err);
+	if (err != GPG_ERR_NO_ERROR)
+		goto out_release_context;
 
 	/* start encrypt */
-
 	err = gpgme_data_new_from_mem(&plain, data,
 		sizeof(char) * (strlen(data) + 1), 0);
-	ret_if_err(1, err);
+	if (err != GPG_ERR_NO_ERROR)
+		goto out_release_context;
 	err = gpgme_data_new(&cipher);
-	ret_if_err(1, err);
+	if (err != GPG_ERR_NO_ERROR)
+		goto out_release_plain;
 
 	err = gpgme_get_key(ctx, pubkey, &key[0], 0);
-	ret_if_err(1, err);
+	if (err != GPG_ERR_NO_ERROR)
+		goto out_release_cipher;
 
 	err = gpgme_op_encrypt(ctx, key, GPGME_ENCRYPT_ALWAYS_TRUST,
 		plain, cipher);
-	ret_if_err(1, err);
+	if (err != GPG_ERR_NO_ERROR)
+		goto out_release_cipher;
 
-	if(loop_read(path, cipher))
-		return 1;
-	
-	gpgme_data_release(plain);
+	ret = loop_read(path, cipher);
+
+out_release_cipher:
 	gpgme_data_release(cipher);
+out_release_plain:
+	gpgme_data_release(plain);
+out_release_context:
 	gpgme_release(ctx);
-	return 0;
+out:
+	if (err != GPG_ERR_NO_ERROR) {
+		print_error("%s: %s\n", gpgme_strsource(err), gpgme_strerror(err));
+	}
+	return ret;
 }
 
 char *decrypt_data(const char *path)
@@ -143,32 +165,46 @@ char *decrypt_data(const char *path)
 	gpgme_error_t err;	
 	gpgme_ctx_t ctx;
 	gpgme_data_t cipher, plain;
-	init_gpgme();
+	char *data = NULL;
 
+	init_gpgme();
 	err = gpgme_new(&ctx);
-	ret_if_err(NULL, err);
+	if (err != GPG_ERR_NO_ERROR)
+		goto out;
 	err = init_ctx(ctx, GPGME_PROTOCOL_OPENPGP);
-	ret_if_err(NULL, err);
+	if (err != GPG_ERR_NO_ERROR)
+		goto out_release_context;
 
 	/* start decrypt */
-
 	err = gpgme_data_new_from_file(&cipher, path, 1);
-	ret_if_err(NULL, err);
+	if (err != GPG_ERR_NO_ERROR)
+		goto out_release_context;
 	err = gpgme_data_new(&plain);
-	ret_if_err(NULL, err);
+	if (err != GPG_ERR_NO_ERROR)
+		goto out_release_cipher;
 
 	err = gpgme_op_decrypt(ctx, cipher, plain);
-	ret_if_err(NULL, err);
+	if (err != GPG_ERR_NO_ERROR)
+		goto out_release_plain;
 
 	int ret = gpgme_data_seek(plain, 0, SEEK_SET);
-	if(ret)
-		ret_if_err(NULL, gpgme_err_code_from_errno(errno));
+	if (ret) {
+		err = gpgme_err_code_from_errno(errno);
+		goto out_release_plain;
+	}
 
-	char *data = malloc(sizeof(char) * (maxlen_pass + 1));
+	data = malloc(sizeof(char) * (maxlen_pass + 1));
 	gpgme_data_read(plain, data, maxlen_pass);
 	
+out_release_plain:
 	gpgme_data_release(plain);
+out_release_cipher:
 	gpgme_data_release(cipher);
+out_release_context:
 	gpgme_release(ctx);
+out:
+	if (err != GPG_ERR_NO_ERROR) {
+		print_error("%s: %s\n", gpgme_strsource(err), gpgme_strerror(err));
+	}
 	return data;
 }
