@@ -27,27 +27,6 @@
 #include "r-gpgme.h"
 #include "output.h"
 
-#ifdef DEBUG
-	#define ret_if_err(ret, err) \
-		do { \
-			if(err != GPG_ERR_NO_ERROR) { \
-				fprintf(stderr, "%s:%d: %s: %s\n", __FILE__, \
-					__LINE__, gpgme_strsource(err), \
-					gpgme_strerror(err)); \
-				return ret; \
-			} \
-		} while(0)
-#else
-	#define ret_if_err(ret, err) \
-		do { \
-			if(err != GPG_ERR_NO_ERROR) { \
-				fprintf(stderr, "%s: %s\n", \
-					gpgme_strsource(err), gpgme_strerror(err)); \
-				return ret; \
-			} \
-		} while(0)
-#endif
-
 static void init_gpgme()
 {
 	/* The GPGME library communicates with child processes (the 
