@@ -27,18 +27,18 @@ EXECUTABLE = lpass
 all: $(EXECUTABLE)
 
 clean:
-	@rm -rf $(EXECUTABLE) $(OBJECTS) $(MAN_OBJECTS)
+	rm -rf $(EXECUTABLE) $(OBJECTS) $(MAN_OBJECTS)
 
 $(EXECUTABLE): $(OBJECTS)
-	@$(CC) $(CFLAGS) $(LIBS) -o $(EXECUTABLE) $(OBJECTS)
+	$(CC) $(CFLAGS) $(LIBS) -o $(EXECUTABLE) $(OBJECTS)
 
 %.o: %.c
-	@$(CC) $(CFLAGS) $(LIBS) -c $< -o $@
+	$(CC) $(CFLAGS) $(LIBS) -c $< -o $@
 
 install: all
 	install -m 755 -v $(EXECUTABLE) $(PREFIX)
 	install -m 0644 -v contrib/completion/lpass-completion.sh $(COMPLETION_PATH)
-	@cat $(MAN_SOURCES) | gzip > $(MAN_OBJECTS)
+	cat $(MAN_SOURCES) | gzip > $(MAN_OBJECTS)
 	install $(MAN_OBJECTS) $(MAN_PATH)
 
 uninstall:
