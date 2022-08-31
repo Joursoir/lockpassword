@@ -38,7 +38,7 @@
 
 int cmd_init(int argc, char *argv[])
 {
-	const char description[] = "init gpg-key\n";
+	const char description[] = "init <gpg-key>\n";
 	int retval = 0, result;
 	char *gpg_key = argv[2];
 	if(gpg_key == NULL) {
@@ -67,7 +67,7 @@ int cmd_init(int argc, char *argv[])
 
 int cmd_insert(int argc, char *argv[])
 {
-	const char description[] = "insert [-ecf] passname\n";
+	const char description[] = "insert [-ecf] <passname>\n";
 	int retval = 0, result;
 	int flag_echo = 0, flag_force = 0, flag_copy = 0;
 	const struct option long_options[] = {
@@ -162,7 +162,7 @@ out:
 
 int cmd_edit(int argc, char *argv[])
 {
-	const char description[] = "edit passname\n";
+	const char description[] = "edit <passname>\n";
 	int result, fd, pid, len_pass, save_errno;
 	/* We expect tmpfs to be mounted at /dev/shm */
 	char path_tmpfile[] = "/dev/shm/lpass.XXXXXX";
@@ -266,7 +266,7 @@ int cmd_edit(int argc, char *argv[])
 
 int cmd_generate(int argc, char *argv[])
 {
-	const char description[] = "generate [-l=pass-length] [-f] passname\n";
+	const char description[] = "generate [-l=pass-length] [-f] <passname>\n";
 	int pass_length = stdlen_pass;
 	int flag_force = 0, flag_copy = 0, result;
 	const struct option long_options[] = {
@@ -336,7 +336,7 @@ int cmd_generate(int argc, char *argv[])
 
 int cmd_remove(int argc, char *argv[])
 {
-	const char description[] = "rm passname\n";
+	const char description[] = "rm <passname>\n";
 	int result;
 	char *path = argv[1];
 	if(!path) {
@@ -374,7 +374,7 @@ int cmd_move(int argc, char *argv[])
 	1) mv file file
 	2) mv file directory */
 	
-	const char description[] = "mv [-f] old-path new-path\n";
+	const char description[] = "mv [-f] <old-path> <new-path>\n";
 	const struct option long_options[] = {
 		{"force", no_argument, NULL, 'f'},
 		{NULL, 0, NULL, 0}
@@ -433,23 +433,23 @@ int cmd_move(int argc, char *argv[])
 int cmd_help(int argc, char *argv[])
 {
 	printf("Synopsis:\n"
-		"\tlpass command [arguments] ...\n"
+		"\tlpass <command> [arguments] ...\n"
 
 		"Commands:\n"
-		"\tinit gpg-key\n"
+		"\tinit <gpg-key>\n"
 		"\t\tInitialize the password manager using the passed gpg-key.\n"
-		"\tinsert [-e, --echo] [-c, --copy] [-f, --force] passname\n"
+		"\tinsert [-e, --echo] [-c, --copy] [-f, --force] <passname>\n"
 		"\t\tAdd the specified passname to the password manager.\n"
 		"\tshow [-c, --copy] [-C, --no-color] [passname]\n"
 		"\t\tIf the specified passname is file, decrypt and print a password of passname. "
 		"Otherwise list passnames inside the tree at passname.\n"
-		"\tedit [-t, --text-editor=text-editor] passname\n"
+		"\tedit [-t, --text-editor=text-editor] <passname>\n"
 		"\t\tOpen the specified passname in a text editor, waiting for changes.\n"
-		"\tgenerate [-l, --length=pass-length] [-c, --copy] [-f, --force] passname\n"
+		"\tgenerate [-l, --length=pass-length] [-c, --copy] [-f, --force] <passname>\n"
 		"\t\tGenerate a random password and write it in passname.\n"
-		"\tmv [-f, --force] old-path new-path\n"
+		"\tmv [-f, --force] <old-path> <new-path>\n"
 		"\t\tMove/rename old-path to new-path.\n"
-		"\trm passname\n"
+		"\trm <passname>\n"
 		"\t\tRemove the passname you specified from the password manager.\n"
 		"\thelp\n"
 		"\t\tPrint help information about commands and the application itself.\n"
