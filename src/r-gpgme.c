@@ -175,6 +175,10 @@ char *decrypt_data(const char *path)
 	}
 
 	data = malloc(sizeof(char) * (maxlen_pass + 1));
+	if (!data) {
+		print_error("Unable to allocate space for the decrypted data.\n");
+		goto out_release_plain;
+	}
 	gpgme_data_read(plain, data, maxlen_pass);
 	
 out_release_plain:

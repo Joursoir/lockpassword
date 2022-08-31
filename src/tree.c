@@ -26,6 +26,7 @@
 #include "tree.h"
 #include "xstd.h"
 #include "easydir.h"
+#include "output.h"
 
 #define ANSIC_RST	"\x1B[0m"
 #define ANSIC_BBLU	"\x1B[34;1m"

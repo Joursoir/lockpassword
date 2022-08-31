@@ -238,6 +238,12 @@ int cmd_edit(int argc, char *argv[])
 	}
 
 	password = malloc(sizeof(char) * (maxlen_pass + 1));
+	if (!password) {
+		print_error("Unable to allocate space for the password.\n");
+		unlink(path_tmpfile);
+		return 1;
+	}
+
 	len_pass = read(fd, password, maxlen_pass);
 	save_errno = errno;
 	close(fd);
@@ -317,6 +323,8 @@ int cmd_generate(int argc, char *argv[])
 
 	// generate password 
 	char *g_pass = gen_password(pass_length);
+	if (!g_pass)
+		return 1;
 
 	result = insert_pass(path, g_pass);
 	if(result) {

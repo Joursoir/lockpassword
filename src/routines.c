@@ -99,6 +99,12 @@ char *get_pubkey()
 	}
 
 	pubkey = malloc(sizeof(char) * (maxlen_fingerprint + 1));
+	if (!pubkey) {
+		print_error("Unable to allocate space for the public key.\n");
+		fclose(fileGPG);
+		return NULL;
+	}
+
 	if(fgets(pubkey, maxlen_fingerprint + 1, fileGPG) == NULL) {
 		print_error("Error: %s\n", strerror(errno));
 		free(pubkey);
@@ -159,8 +165,12 @@ int insert_pass(const char *path, const char *password)
 
 char *get_input(int minlen, int maxlen)
 {
-	char *pass = malloc(sizeof(char) * (maxlen + 1));
 	int len;
+	char *pass = malloc(sizeof(char) * (maxlen + 1));
+	if (!pass) {
+		print_error("Unable to allocate space for the password.\n");
+		return NULL;
+	}
 
 	if(fgets(pass, maxlen + 1, stdin) == NULL) {
 		print_error("Error: %s\n", strerror(errno));
@@ -189,6 +199,10 @@ char *gen_password(int length)
 		"0123456789"
 		"!@#$^&*?";
 	char *password = malloc(sizeof(char) * (length + 1));
+	if (!password) {
+		print_error("Unable to allocate space for the password.\n");
+		return NULL;
+	}
 
 	srand(time(NULL));
 	for(i = 0; i < length; i++) 
