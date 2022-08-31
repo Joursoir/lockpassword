@@ -35,7 +35,7 @@
 #endif
 #include "output.h"
 
-#define NUMBER_ALLOWED_CHARS (10+26+26+8)
+#define NUMBER_ALLOWED_CHARS	(10+26+26+8)
 
 int copy_outside(char *password)
 {

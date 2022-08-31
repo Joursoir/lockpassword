@@ -27,9 +27,9 @@
 #include "xstd.h"
 #include "easydir.h"
 
-#define ANSIC_RST  "\x1B[0m"
-#define ANSIC_BBLU  "\x1B[34;1m"
-#define ANSIC_BGRN  "\x1B[32;1m"
+#define ANSIC_RST	"\x1B[0m"
+#define ANSIC_BBLU	"\x1B[34;1m"
+#define ANSIC_BGRN	"\x1B[32;1m"
 
 static void entries_sort(char **entries, const int size)
 {

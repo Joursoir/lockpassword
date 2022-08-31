@@ -19,15 +19,15 @@
 	along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ***/
 
-#define VERSION "1.2a"
-#define DATE_RELEASE "4 July, 2021"
+#define VERSION	"1.2a"
+#define DATE_RELEASE	"4 July, 2021"
 
-#define LOCKPASS_DIR ".lock-password/"
-#define GPGKEY_FILE ".gpg-key"
-#define STD_TEXT_EDITOR "vi"
+#define LOCKPASS_DIR	".lock-password/"
+#define GPGKEY_FILE	".gpg-key"
+#define STD_TEXT_EDITOR	"vi"
 
 #ifdef DEBUG
-	#define dbgprint(...) fprintf(stderr, "Debug: " __VA_ARGS__)
+	#define dbgprint(...)	fprintf(stderr, "Debug: " __VA_ARGS__)
 #else
 	#define dbgprint(...)
 #endif

@@ -19,7 +19,7 @@
 	along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ***/
 
-#define GPG_PUBLICKEY_MAXLENGTH 1024
+#define GPG_PUBLICKEY_MAXLENGTH	1024
 
 int copy_outside(char *password);
 int check_sneaky_paths(const char *path);
