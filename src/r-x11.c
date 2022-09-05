@@ -23,6 +23,7 @@
 #include <X11/Xlib.h>
 
 #include "constants.h"
+#include "r-x11.h"
 #include "output.h"
 
 static Atom X_utf8;
