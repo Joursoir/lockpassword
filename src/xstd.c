@@ -19,6 +19,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "xstd.h"
+
 char *xstrcat(const char *first, const char *second,
 	const char *delimiter)
 {
