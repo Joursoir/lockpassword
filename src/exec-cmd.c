@@ -361,13 +361,9 @@ int cmd_remove(int argc, char *argv[])
 		print_error("Error: No such file exists\n");
 		return 1;
 	}
-	if(result == F_ISDIR) {
-		if(count_dir_entries(path) != 0) {
-			print_error("Error: Directory not empty\n");
-			return 1;
-		}
-	}
 
+	/* If path names a directory, remove() shall be equivalent 
+	   to rmdir(). */
 	result = remove(path);
 	if(result) {
 		print_error("Error: %s\n", strerror(errno));
