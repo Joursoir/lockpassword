@@ -24,10 +24,10 @@
 char *xstrcat(const char *first, const char *second,
 	const char *delimiter)
 {
-	size_t size = sizeof(char) * (strlen(first) + strlen(second) + 1);
+	size_t size = strlen(first) + strlen(second) + 1;
 	if(delimiter)
-		size += sizeof(char) * strlen(delimiter);
-	char *res = malloc(size);
+		size += strlen(delimiter);
+	char *res = malloc(size * sizeof(char));
 	strcpy(res, first);
 	if(delimiter)
 		strcat(res, delimiter);
