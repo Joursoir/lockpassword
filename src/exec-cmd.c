@@ -356,12 +356,6 @@ int cmd_remove(int argc, char *argv[])
 	if(result)
 		return 1;
 
-	result = file_exist(path);
-	if(result == F_NOEXIST) {
-		print_error("Error: No such file exists\n");
-		return 1;
-	}
-
 	/* If path names a directory, remove() shall be equivalent 
 	   to rmdir(). */
 	result = remove(path);
