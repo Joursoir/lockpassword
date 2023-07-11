@@ -9,3 +9,14 @@ Dependencies:
   https://www.gnupg.org/
 * GPGME
   https://www.gnupg.org/software/gpgme/
+
+=== TO-DO LIST ===
+
+Feel free to sumbit patches.
+
+* Track password changes using git: https://libgit2.org/
+* Re-encrypt passwords when GPG key is changed.
+* Refactor tree-printing routine.
+* Use Wayland library to copy text to the clipboard (currently `wl-copy` application is used).
+* Make `liblpass` which contains functions for interacting with the password manager.
+* Add support for MinGW and other systems.
