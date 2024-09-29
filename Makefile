@@ -1,7 +1,7 @@
 PREFIX = /usr/local/bin
 CC = gcc
 CFLAGS = -Wall -g #-DDEBUG
-LIBS = $(shell gpgme-config --cflags --libs)
+LIBS = $(shell pkg-config --cflags --libs gpgme)
 MAN_PATH = /usr/share/man/man1
 COMPLETION_PATH = /usr/share/bash-completion/completions/lpass
 SOURCES = \
