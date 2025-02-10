@@ -2,6 +2,7 @@ PREFIX = /usr/local/bin
 CC = gcc
 CFLAGS = -Wall -g #-DDEBUG
 LIBS = $(shell pkg-config --cflags --libs gpgme)
+HAVE_LIBGIT2 = $(shell pkg-config --exists libgit2 && echo yes)
 MAN_PATH = /usr/share/man/man1
 COMPLETION_PATH = /usr/share/bash-completion/completions/lpass
 SOURCES = \
@@ -12,6 +13,11 @@ SOURCES = \
 	src/r-gpgme.c \
 	src/tree.c \
 	src/xstd.c
+ifdef HAVE_LIBGIT2
+	CFLAGS += $(shell pkg-config --cflags libgit2) -DLIGBIT
+	LIBS += $(shell pkg-config --libs libgit2)
+	SOURCES += src/r-lg2.c
+endif
 ifdef DISPLAY
 	LIBS += -lX11
 	CFLAGS += -DDISPLAY

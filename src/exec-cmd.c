@@ -33,6 +33,7 @@
 #include "exec-cmd.h"
 #include "tree.h"
 #include "output.h"
+#include "r-lg2.h"
 
 #define print_options(msg)	print_usage("%s", msg)
 
@@ -70,6 +71,7 @@ int cmd_insert(int argc, char *argv[])
 	const char description[] = "insert [-ecf] <passname>\n";
 	int retval = 0, result;
 	int flag_echo = 0, flag_force = 0, flag_copy = 0;
+	int overwrite = 0;
 	const struct option long_options[] = {
 		{"echo", no_argument, NULL, 'e'},
 		{"force", no_argument, NULL, 'f'},
@@ -103,6 +105,7 @@ int cmd_insert(int argc, char *argv[])
 			if(overwrite_answer(path) != 'y')
 				return 1;
 		}
+		overwrite = 1;
 	}
 
 	char *f_pass = NULL, *s_pass = NULL;
@@ -148,6 +151,15 @@ int cmd_insert(int argc, char *argv[])
 		retval = 1;
 		goto out;
 	}
+
+#ifdef LIGBIT
+	result = lg2_simple_action(GIT_ACTION_INSERT, overwrite, path, NULL);
+	if (result) {
+		print_error("Error: Can't commit the changes\n");
+		// TODO: restore password? Just notify for now
+	}
+#endif
+
 	if(flag_copy)
 		copy_outside(f_pass);
 
@@ -267,6 +279,14 @@ int cmd_edit(int argc, char *argv[])
 		return 1;
 	}
 
+#ifdef LIGBIT
+	result = lg2_simple_action(GIT_ACTION_EDIT, 0, path, NULL);
+	if (result) {
+		print_error("Error: Can't commit the changes\n");
+		// TODO: restore password? Just notify for now
+	}
+#endif
+
 	return 0;
 }
 
@@ -275,6 +295,7 @@ int cmd_generate(int argc, char *argv[])
 	const char description[] = "generate [-l=pass-length] [-f] <passname>\n";
 	int pass_length = stdlen_pass;
 	int flag_force = 0, flag_copy = 0, result;
+	int overwrite = 0;
 	const struct option long_options[] = {
 		{"length", required_argument, NULL, 'l'},
 		{"force", no_argument, NULL, 'f'},
@@ -315,6 +336,7 @@ int cmd_generate(int argc, char *argv[])
 			if(overwrite_answer(path) != 'y')
 				return 1;
 		}
+		overwrite = 1;
 	}
 	else if(result == F_ISDIR) {
 		print_error("Error: You can't generate password for directory\n");
@@ -332,6 +354,14 @@ int cmd_generate(int argc, char *argv[])
 		free(g_pass);
 		return 1;
 	}
+
+#ifdef LIGBIT
+	result = lg2_simple_action(GIT_ACTION_GENERATE, overwrite, path, NULL);
+	if (result) {
+		print_error("Error: Can't commit the changes\n");
+		// TODO: restore password? Just notify for now
+	}
+#endif
 
 	if(flag_copy)
 		copy_outside(g_pass);
@@ -363,6 +393,15 @@ int cmd_remove(int argc, char *argv[])
 		print_error("Error: %s\n", strerror(errno));
 		return 1;
 	}
+
+#ifdef LIGBIT
+	result = lg2_simple_action(GIT_ACTION_DELETE, 0, path, NULL);
+	if (result) {
+		print_error("Error: Can't commit the changes\n");
+		// TODO: restore password? Just notify for now
+	}
+#endif
+
 	return 0;
 }
 
@@ -379,6 +418,7 @@ int cmd_move(int argc, char *argv[])
 	};
 
 	int result, flag_force = 0;
+	int overwrite = 0;
 	while((result = getopt_long(argc, argv, "f", long_options, NULL)) != -1) {
 		switch(result) {
 			case 'f': { flag_force = 1; break; }
@@ -418,6 +458,7 @@ int cmd_move(int argc, char *argv[])
 			if(overwrite_answer(new_path) != 'y')
 				return 1;
 		}
+		overwrite = 1;
 	}
 
 	result = rename(old_path, new_path);
@@ -425,6 +466,15 @@ int cmd_move(int argc, char *argv[])
 		print_error("Error: %s\n", strerror(errno));
 		return 1;
 	}
+
+#ifdef LIGBIT
+	result = lg2_simple_action(GIT_ACTION_MOVE, overwrite, old_path, new_path);
+	if (result) {
+		print_error("Error: Can't commit the changes\n");
+		// TODO: restore password? Just notify for now
+	}
+#endif
+
 	return 0;
 }
 

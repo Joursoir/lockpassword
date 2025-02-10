@@ -27,6 +27,7 @@
 #include "exec-cmd.h"
 #include "xstd.h"
 #include "output.h"
+#include "r-lg2.h"
 
 struct cmd_struct {
 	const char *cmd;
@@ -93,8 +94,20 @@ int main(int argc, char *argv[])
 	if(goto_maindir())
 		return 1;
 
+#ifdef LIGBIT
+	result = lg2_open_repo(".");
+	if (result) {
+		print_error("Something went wrong with git\n");
+		return 1;
+	}
+#endif
+
 	struct cmd_struct *ptr = get_cmd(argv[1]);
 	result = ptr ? ptr->func(--argc, ++argv) : cmd_help(argc, argv);
+
+#ifdef LIGBIT
+	lg2_close_repo();
+#endif
 
 	return result;
 }

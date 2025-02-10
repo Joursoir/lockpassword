@@ -9,12 +9,13 @@ Dependencies:
   https://www.gnupg.org/
 * GPGME
   https://www.gnupg.org/software/gpgme/
+* libgit2 (only if you want use git to track your data)
+  https://libgit2.org/
 
 === TO-DO LIST ===
 
 Feel free to sumbit patches.
 
-* Track password changes using git: https://libgit2.org/
 * Re-encrypt passwords when GPG key is changed.
 * Refactor tree-printing routine.
 * Use Wayland library to copy text to the clipboard (currently `wl-copy` application is used).
