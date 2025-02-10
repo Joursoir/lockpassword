@@ -90,7 +90,7 @@ int tree(const char *path, const char *prefix, int use_color)
 			prefix_depth = "│   ";
 		}
 
-		full_path = xstrcat(path, entries[i], "/");
+		full_path = xstrcat(path, "/", entries[i], NULL);
 		printf("%s%s", prefix, pointer);
 		if(file_exist(full_path) == F_ISDIR) {
 			printf("%s%s%s\n", 

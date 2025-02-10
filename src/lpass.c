@@ -61,7 +61,7 @@ static struct cmd_struct *get_cmd(const char *name)
 
 static int goto_maindir()
 {
-	char *rootdir = xstrcat(getenv("HOME"), LOCKPASS_DIR, "/");
+	char *rootdir = xstrcat(getenv("HOME"), "/", LOCKPASS_DIR, NULL);
 	int retval = chdir(rootdir);
 	if(retval)
 	{

@@ -3,7 +3,7 @@
 
 /***
 	This file is part of LockPassword
-	Copyright (C) 2020-2021 Aleksandr D. Goncharov (Joursoir) <chat@joursoir.net>
+	Copyright (C) 2020-2025 Aleksandr D. Goncharov (Joursoir) <chat@joursoir.net>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 	along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ***/
 
-char *xstrcat(const char *first, const char *second,
-	const char *delimiter);
+// A `null` pointer indicates the end of the arguments
+char *xstrcat(const char *first, ...);
 
 #endif /* LPASS_XSTD_H */
