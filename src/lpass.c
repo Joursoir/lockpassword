@@ -83,6 +83,8 @@ static int goto_maindir()
 
 int main(int argc, char *argv[])
 {
+	int result;
+
 	if(!isatty(STDIN_FILENO)) {
 		print_error("Please, use a terminal to run this application\n");
 		return 1;
@@ -92,9 +94,7 @@ int main(int argc, char *argv[])
 		return 1;
 
 	struct cmd_struct *ptr = get_cmd(argv[1]);
-	if(ptr)
-		return ptr->func(--argc, ++argv);
-	
-	cmd_help(argc, argv);
-	return 1;
+	result = ptr ? ptr->func(--argc, ++argv) : cmd_help(argc, argv);
+
+	return result;
 }
